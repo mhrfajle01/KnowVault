@@ -84,7 +84,7 @@ const CustomModal = () => {
             style={{ minHeight: isReadMode ? '300px' : 'auto' }}
         >
           {content ? (
-              <div className="fs-5 text-dark">
+              <div className="fs-5 text-body">
                   {content}
               </div>
           ) : (
