@@ -87,6 +87,9 @@ function App() {
 
       {view === 'vault' ? (
           <div className="container">
+            <div className="mb-4 p-4 rounded-4 shadow-sm bg-body border border-light-subtle">
+                <SearchBar />
+            </div>
             <div className="row">
               <div className="col-lg-3">
                 <Sidebar />
@@ -96,7 +99,6 @@ function App() {
                     <NoteEditor />
                 </div>
                 <hr className="my-4" />
-                <SearchBar />
                 <NoteList onEdit={scrollToEditor} />
               </div>
             </div>

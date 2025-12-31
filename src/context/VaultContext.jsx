@@ -73,6 +73,8 @@ const vaultReducer = (state, action) => {
       };
     case 'EMPTY_TRASH':
       return { ...state, items: state.items.filter(item => !item.trashed) };
+    case 'RESET_VAULT':
+      return { ...initialState, loading: false };
     default:
       return state;
   }
@@ -161,6 +163,17 @@ export const VaultProvider = ({ children }) => {
         await dbUtils.delete(item.id);
     }
     dispatch({ type: 'EMPTY_TRASH' });
+  };
+
+  const factoryReset = async () => {
+    try {
+        await dbUtils.clearAll();
+        localStorage.clear();
+        dispatch({ type: 'RESET_VAULT' });
+        window.location.reload(); // Reload to ensure everything is fresh
+    } catch (err) {
+        dispatch({ type: 'SET_ERROR', payload: "Reset failed: " + err.message });
+    }
   };
 
   const bulkArchiveByType = async (type) => {
@@ -254,6 +267,7 @@ export const VaultProvider = ({ children }) => {
       moveToTrash,
       restoreFromTrash,
       emptyTrash,
+      factoryReset,
       bulkArchiveByType,
       togglePin,
       toggleArchive,

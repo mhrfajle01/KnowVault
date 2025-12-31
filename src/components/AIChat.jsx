@@ -167,16 +167,15 @@ const AIChat = () => {
             
             {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`d-flex mb-3 ${msg.role === 'user' ? 'justify-content-end' : 'justify-content-start'}`}>
-                    <div 
-                        className={`p-3 rounded-3 shadow-sm ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-body text-body'}`}
-                        style={{ maxWidth: '85%', fontSize: '0.9rem' }}
-                    >
-                        {msg.role === 'user' ? (
-                            msg.text
-                        ) : (
-                            <ReactMarkdown>{msg.text}</ReactMarkdown>
-                        )}
-                    </div>
+                            <div className={`p-3 rounded-4 shadow-sm ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-body-tertiary'}`} style={{ maxWidth: '85%' }}>
+                                {msg.role === 'user' ? (
+                                    <div className="mb-0">{msg.text}</div>
+                                ) : (
+                                    <div className="markdown-preview mb-0">
+                                        <ReactMarkdown>{msg.text}</ReactMarkdown>
+                                    </div>
+                                )}
+                            </div>
                 </div>
             ))}
             {isAiLoading && (

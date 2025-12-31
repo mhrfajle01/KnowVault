@@ -509,6 +509,136 @@ export const AIProvider = ({ children }) => {
       return "Summary feature requires selecting a provider.";
   };
 
+  const enhanceText = async (text) => {
+    if (!text.trim()) return text;
+    
+    if (provider === 'local') {
+        // Step 1: Deep Cleanup (Removing "unnecessary" text noise)
+        let cleanedText = text
+            .replace(/[^\x20-\x7E\n]/g, '') // Remove non-printable characters
+            .replace(/[\n]{3,}/g, '\n\n') // Normalize excessive newlines
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => {
+                // Filter out generic filler/junk lines
+                const lowLine = line.toLowerCase();
+                if (line.length < 2) return false;
+                if (/^(copy|paste|text|here|untitled|note)$/i.test(lowLine)) return false;
+                return true;
+            })
+            .join('\n');
+
+        const lines = cleanedText.split('\n');
+        if (lines.length === 0) return text;
+
+        const emojiMap = {
+            'note': '📝', 'link': '🔗', 'idea': '💡', 'task': '✅', 
+            'important': '⚠️', 'fix': '🔧', 'code': '💻', 'web': '🌐', 
+            'todo': '📅', 'warning': '🚨', 'info': 'ℹ️', 'success': '✨',
+            'bug': '🐛', 'user': '👤', 'data': '📊', 'config': '⚙️'
+        };
+
+        const processedLines = lines.map((line, i) => {
+            let processed = line;
+
+            // 1. Intelligent Title (if first line is short and not a heading)
+            if (i === 0 && !line.startsWith('#')) {
+                const title = line.replace(/[#\*_]/g, '').trim();
+                if (title.length < 100) {
+                    return `# 🗒️ ${title}\n---\n`;
+                }
+            }
+            
+            // 2. Remove redundant "header" words if they start the line
+            processed = processed.replace(/^(note|content|text|title):\s*/i, '');
+
+            // 3. Keyword highlighting & Emojis
+            Object.keys(emojiMap).forEach(key => {
+                const regex = new RegExp(`\\b${key}\\b`, 'gi');
+                if (regex.test(processed) && !processed.includes(emojiMap[key])) {
+                    processed = `${emojiMap[key]} ${processed}`;
+                }
+            });
+
+            // 4. Key-Value Bolding
+            if (/^[A-Za-z\s]+:/.test(processed) && !processed.startsWith('#') && processed.includes(': ')) {
+                processed = processed.replace(/^([^:]+:)/, '**$1**');
+            }
+
+            // 5. List Normalization
+            if (/^[\-\*\d\.]/.test(processed)) {
+                processed = `- ${processed.replace(/^[\-\*\d\.\s]+/, '')}`;
+            } else if (processed.length < 60 && !processed.endsWith('.') && !processed.startsWith('#') && !processed.startsWith('>')) {
+                // 6. Section Header Inference
+                return `## 📍 ${processed}`;
+            }
+
+            // 7. Importance Detection
+            if (/\b(must|urgent|priority|important|todo|remember)\b/i.test(processed)) {
+                processed = `> ${processed}`;
+            }
+
+            // 8. URL Linker
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            processed = processed.replace(urlRegex, (url) => `[${url}](${url})`);
+
+            return processed;
+        });
+
+        // 9. Final Utilization: Filter out redundant titles that might have been inferred incorrectly
+        const finalContent = processedLines.filter((line, index, self) => {
+            if (line.startsWith('# ') && index > 0) return false; // Only one H1
+            return true;
+        }).join('\n\n');
+
+        return finalContent + `\n\n---\n*✨ Synthesized & Optimized locally by KnowVault*`;
+    }
+
+    const cleanKey = apiKey.trim();
+    if (!cleanKey) {
+        throw new Error('Please set your API Key in AI settings to use Enhance.');
+    }
+
+    const prompt = `You are a professional note editor. Enhance the following unformatted text into a beautiful, well-structured Markdown note. 
+    Fix grammar, add headings, bullet points, and bold important terms where appropriate. 
+    Maintain all the original information but make it highly readable and professional.
+    
+    TEXT TO ENHANCE:
+    ${text}`;
+
+    try {
+        let enhanced = "";
+        if (provider === 'gemini') {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            const data = await response.json();
+            enhanced = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        } else {
+            const response = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${cleanKey}`
+                },
+                body: JSON.stringify({
+                    model: "deepseek-chat",
+                    messages: [{ role: "user", content: prompt }],
+                    stream: false
+                })
+            });
+            const data = await response.json();
+            enhanced = data.choices?.[0]?.message?.content;
+        }
+        return enhanced || text;
+    } catch (e) {
+        console.error("Enhance error:", e);
+        throw e;
+    }
+  };
+
   const clearHistory = () => setChatHistory([]);
 
   return (
@@ -518,7 +648,8 @@ export const AIProvider = ({ children }) => {
       saveConfig, 
       chatHistory, 
       askAI, 
-      summarizeNote, 
+      summarizeNote,
+      enhanceText,
       isAiLoading, 
       clearHistory,
       isOpen,

@@ -1,15 +1,29 @@
 import React from 'react';
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
+import { useUI } from '../context/UIContext';
 
 const Sidebar = () => {
-  const { state, setFilters, allTags, emptyTrash } = useVault();
+  const { state, setFilters, allTags, emptyTrash, factoryReset } = useVault();
   const { playAiSound } = useAI();
+  const { showModal } = useUI();
   const { filters } = state;
 
   const handleFilterChange = (newFilters) => {
     playAiSound('info');
     setFilters(newFilters);
+  };
+
+  const handleFactoryReset = () => {
+    showModal({
+        title: 'Factory Reset?',
+        message: 'This will permanently DELETE all your notes, links, code snippets and settings. This action is irreversible!',
+        type: 'danger',
+        onConfirm: () => {
+            playAiSound('delete');
+            factoryReset();
+        }
+    });
   };
 
   return (
@@ -78,6 +92,17 @@ const Sidebar = () => {
           </button>
         ))}
         {allTags.length === 0 && <p className="text-muted small italic">No tags yet.</p>}
+      </div>
+
+      <div className="mt-5 pt-3 border-top">
+          <h6 className="text-uppercase text-danger small fw-bold mb-3">Danger Zone</h6>
+          <button 
+            className="btn btn-sm btn-outline-danger w-100 border-0 text-start d-flex align-items-center gap-2 py-2" 
+            onClick={handleFactoryReset}
+          >
+              <span>⚙️</span>
+              <span>Factory Reset</span>
+          </button>
       </div>
     </div>
   );

@@ -45,45 +45,61 @@ const NoteCard = ({ item, onEdit }) => {
   const renderContentWithWikiLinks = (content) => {
     if (!content) return null;
     
-    const parts = content.split(/(\[\[.*?\||\]\])/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('[[') && part.endsWith(']]')) {
-        const title = part.slice(2, -2);
-        return (
-          <span 
-            key={i} 
-            className="text-primary fw-bold cursor-pointer hover-underline" 
-            style={{ cursor: 'pointer' }}
-            onClick={(e) => {
-                e.stopPropagation();
-                playAiSound('info');
-                setFilters({ search: title, showArchived: false, showTrashed: false });
-            }}
-          >
-            {part}
-          </span>
-        );
-      }
-      return <ReactMarkdown key={i} rehypePlugins={[rehypeHighlight]}>{part}</ReactMarkdown>;
+    // Pre-process content to convert [[Title]] or [[Title|Label]] to a custom link format
+    let processedContent = content.replace(/\[\[(.*?)(?:\|(.*?))?\]\]/g, (match, title, label) => {
+      return `[${label || title}](wiki://${title.trim()})`;
     });
+
+    return (
+      <ReactMarkdown 
+        rehypePlugins={[rehypeHighlight]}
+        components={{
+          a: ({node, ...props}) => {
+            if (props.href && props.href.startsWith('wiki://')) {
+              const title = props.href.replace('wiki://', '');
+              return (
+                <span 
+                  className="text-primary fw-bold cursor-pointer hover-underline" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      playAiSound('info');
+                      setFilters({ search: decodeURIComponent(title), showArchived: false, showTrashed: false });
+                  }}
+                >
+                  {props.children}
+                </span>
+              );
+            }
+            return <a {...props} target="_blank" rel="noopener noreferrer" />;
+          },
+          // Custom text renderer for search highlighting
+          text: ({node, ...props}) => {
+             const query = filters.search;
+             if (!query || typeof props.children !== 'string') return <span>{props.children}</span>;
+             
+             const parts = props.children.split(new RegExp(`(${query})`, 'gi'));
+             return (
+               <span>
+                 {parts.map((part, i) => 
+                   part.toLowerCase() === query.toLowerCase() ? <mark key={i} className="p-0 bg-warning rounded-1">{part}</mark> : part
+                 )}
+               </span>
+             );
+          }
+        }}
+      >
+        {processedContent}
+      </ReactMarkdown>
+    );
   };
 
   const handleShowMore = () => {
       playAiSound('info');
       showModal({
           title: item.title,
-          content: (
-             <div className="markdown-preview">
-                {item.type === 'code' ? (
-                   <div className="bg-body-tertiary p-3 rounded border">
-                       <small className="text-muted d-block mb-1 border-bottom pb-1">{item.language}</small>
-                       <pre className="mb-0 overflow-auto"><code>{item.content}</code></pre>
-                   </div>
-                ) : (
-                   renderContentWithWikiLinks(item.content)
-                )}
-             </div>
-          ),
+          item: item,
           type: 'read',
           onConfirm: () => {} 
       });
@@ -118,11 +134,16 @@ const NoteCard = ({ item, onEdit }) => {
     alert('Copied to clipboard! 📋');
   };
 
-  const backlinks = vaultState.items.filter(i => 
-    i.id !== item.id && 
-    !i.trashed && 
-    i.content.includes(`[[${item.title}]]`)
-  );
+  const backlinks = vaultState.items.filter(i => {
+    if (i.id === item.id || i.trashed) return false;
+    
+    // Improved regex to find wiki-links to this item's title
+    // Handles [[Title]] and [[Title|Label]]
+    // Escapes special characters in title for regex
+    const escapedTitle = item.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wikiLinkRegex = new RegExp(`\\[\\[${escapedTitle}(\\|.*?)?\\]\\]`, 'i');
+    return wikiLinkRegex.test(i.content);
+  });
 
   const getIcon = () => {
     switch(item.type) {
@@ -146,9 +167,26 @@ const NoteCard = ({ item, onEdit }) => {
 
   const isLongContent = item.content.length > 300;
 
+  const getMatchCount = () => {
+    if (!filters.search) return 0;
+    const regex = new RegExp(filters.search, 'gi');
+    const titleMatches = (item.title.match(regex) || []).length;
+    const contentMatches = (item.content.match(regex) || []).length;
+    return titleMatches + contentMatches;
+  };
+
+  const matchCount = getMatchCount();
+
   return (
-    <div className={`card mb-3 shadow-sm ${item.pinned ? 'border-primary border-2' : ''}`}>
+    <div className={`card mb-3 shadow-sm ${item.pinned ? 'border-primary border-2' : ''} ${matchCount > 0 ? 'border-warning' : ''}`}>
       <div className="card-body p-3">
+        {matchCount > 0 && (
+            <div className="position-absolute top-0 end-0 m-2">
+                <span className="badge bg-warning text-dark animate-pulse shadow-sm">
+                    ✨ {matchCount} {matchCount === 1 ? 'match' : 'matches'}
+                </span>
+            </div>
+        )}
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
           <h5 className="card-title mb-0 d-flex align-items-center flex-grow-1" style={{ minWidth: '150px' }}>
             <span className="me-2">{getIcon()}</span>
@@ -219,26 +257,34 @@ const NoteCard = ({ item, onEdit }) => {
           </div>
         )}
 
-        <div className="card-text mb-3 overflow-hidden">
+        <div className="card-text mb-3 position-relative">
             {item.type === 'code' ? (
-                 <div className="bg-body-tertiary p-3 rounded border" style={{ maxHeight: '200px', overflow: 'hidden' }}>
-                    <small className="text-muted d-block mb-1 border-bottom pb-1">{item.language}</small>
-                    <pre className="mb-0 overflow-auto"><code>{item.content}</code></pre>
+                 <div className="bg-body-tertiary p-3 rounded border border-start-4 border-info" style={{ maxHeight: '250px', overflow: 'hidden' }}>
+                    <div className="d-flex justify-content-between align-items-center mb-1 border-bottom pb-1">
+                        <small className="text-info fw-bold">{item.language?.toUpperCase() || 'CODE'}</small>
+                        <small className="text-muted">{item.content.split('\n').length} lines</small>
+                    </div>
+                    <pre className="mb-0 overflow-auto" style={{ fontSize: '0.875rem' }}>
+                        <code className={`language-${item.language || 'text'}`}>{filters.search ? highlightText(item.content, filters.search) : item.content}</code>
+                    </pre>
                  </div>
             ) : (
-                <div className="markdown-preview" style={{ maxHeight: '150px', overflow: 'hidden', position: 'relative' }}>
+                <div className="markdown-preview" style={{ maxHeight: '200px', overflow: 'hidden', position: 'relative' }}>
                     {renderContentWithWikiLinks(item.content)}
                     {isLongContent && <div className="fade-bottom"></div>}
                 </div>
             )}
             
             {isLongContent && (
-                <button 
-                    className="btn btn-link btn-sm p-0 mt-2 text-decoration-none" 
-                    onClick={handleShowMore}
-                >
-                    Read full note ↗
-                </button>
+                <div className="text-center mt-n3 position-relative z-2">
+                    <button 
+                        className="btn btn-primary btn-sm px-4 rounded-pill shadow-sm" 
+                        onClick={handleShowMore}
+                        style={{ marginTop: '-15px' }}
+                    >
+                        Read full note ↗
+                    </button>
+                </div>
             )}
         </div>
 
@@ -259,7 +305,8 @@ const NoteCard = ({ item, onEdit }) => {
                             style={{ cursor: 'pointer' }}
                             onClick={() => {
                                 playAiSound('info');
-                                setFilters({ search: link.title, showArchived: false, showTrashed: false });
+                                // Use exact match for title search
+                                setFilters({ search: `"${link.title}"`, showArchived: false, showTrashed: false });
                             }}
                         >
                             {link.title}

@@ -68,5 +68,18 @@ export const dbUtils = {
       request.onsuccess = () => resolve(id);
       request.onerror = () => reject(request.error);
     });
+  },
+
+  clearAll: async () => {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(DB_NAME);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+      request.onblocked = () => {
+          console.warn('Database deletion blocked. Please close other tabs.');
+          // Even if blocked, we can try to clear the object store if we have a connection
+          resolve(); 
+      };
+    });
   }
 };

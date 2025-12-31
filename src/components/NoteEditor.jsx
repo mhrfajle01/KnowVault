@@ -3,9 +3,11 @@ import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css'; // Light theme for code
 import { useVault } from '../context/VaultContext';
+import { useAI } from '../context/AIContext';
 
 const NoteEditor = () => {
   const { state, addItem, updateItem, setEditingItem, allTags } = useVault();
+  const { enhanceText, playAiSound } = useAI();
   const { editingItem } = state;
 
   const initialFormState = {
@@ -20,6 +22,8 @@ const NoteEditor = () => {
   const [formData, setFormData] = useState(initialFormState);
   const [isPreview, setIsPreview] = useState(false);
   const [saveStatus, setSaveStatus] = useState('saved'); // saved, saving, unsaved
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceStage, setEnhanceStage] = useState(''); // reading, thinking, writing
   const [charCount, setCharCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
@@ -153,6 +157,79 @@ const NoteEditor = () => {
       textarea.focus();
   };
 
+  const formatJSON = () => {
+    try {
+        const obj = JSON.parse(formData.content);
+        const formatted = JSON.stringify(obj, null, 2);
+        setFormData(prev => ({ ...prev, content: formatted, type: 'code', language: 'json' }));
+    } catch (e) {
+        alert("Invalid JSON: " + e.message);
+    }
+  };
+
+  const handleEnhance = async () => {
+    if (!formData.content.trim()) return;
+    setIsEnhancing(true);
+    playAiSound('info');
+    
+    try {
+        // Step 1: Reading
+        setEnhanceStage('reading');
+        await new Promise(r => setTimeout(r, 800));
+        
+        // Step 2: Thinking
+        setEnhanceStage('thinking');
+        await new Promise(r => setTimeout(r, 1200));
+        
+        // Step 3: Writing
+        setEnhanceStage('writing');
+        const enhanced = await enhanceText(formData.content);
+        
+        // Simulate "typing" effect or just a small delay for finalization
+        await new Promise(r => setTimeout(r, 500));
+        
+        setFormData(prev => ({ ...prev, content: enhanced }));
+        playAiSound('success');
+    } catch (e) {
+        alert(e.message);
+    } finally {
+        setIsEnhancing(false);
+        setEnhanceStage('');
+    }
+  };
+
+  const renderPreview = () => {
+    if (!formData.content.trim()) return <div className="text-muted italic">No content to preview</div>;
+
+    // Detect if content is likely JSON
+    const isJson = (formData.type === 'code' && formData.language?.toLowerCase() === 'json') || 
+                   (formData.content.trim().startsWith('{') || formData.content.trim().startsWith('['));
+
+    if (isJson && formData.type === 'code') {
+        try {
+            // Try to pretty print for preview if it's JSON type
+            const obj = JSON.parse(formData.content);
+            return (
+                <pre className="m-0"><code className="language-json">{JSON.stringify(obj, null, 2)}</code></pre>
+            );
+        } catch (e) {
+            // If invalid JSON, just show as is
+            return <pre className="m-0"><code>{formData.content}</code></pre>;
+        }
+    }
+
+    if (formData.type === 'code') {
+        return (
+            <div className="bg-body-tertiary p-3 rounded border">
+                <small className="text-muted d-block mb-1 border-bottom pb-1">{formData.language}</small>
+                <pre className="mb-0 overflow-auto"><code>{formData.content}</code></pre>
+            </div>
+        );
+    }
+
+    return <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{formData.content}</ReactMarkdown>;
+  };
+
   return (
     <div className="card mb-4 shadow-sm">
       <div className="card-header d-flex justify-content-between align-items-center">
@@ -213,24 +290,47 @@ const NoteEditor = () => {
 
           {/* Markdown Toolbar */}
           {!isPreview && formData.type !== 'link' && (
-              <div className="btn-group mb-2">
-                  <button type="button" className="btn btn-sm btn-light border" onClick={() => insertMarkdown('**')} title="Bold"><b>B</b></button>
-                  <button type="button" className="btn btn-sm btn-light border" onClick={() => insertMarkdown('_')} title="Italic"><i>I</i></button>
-                  <button type="button" className="btn btn-sm btn-light border" onClick={() => insertMarkdown('#')} title="Heading">H1</button>
-                  <button type="button" className="btn btn-sm btn-light border" onClick={() => insertMarkdown('`')} title="Code">`</button>
-                  <button type="button" className="btn btn-sm btn-light border" onClick={() => insertMarkdown('```')} title="Code Block">```</button>
+              <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+                  <div className="btn-group btn-group-responsive shadow-sm">
+                      <button type="button" className="btn btn-sm btn-light border-end" onClick={() => insertMarkdown('**')} title="Bold"><b>B</b></button>
+                      <button type="button" className="btn btn-sm btn-light border-end" onClick={() => insertMarkdown('_')} title="Italic"><i>I</i></button>
+                      <button type="button" className="btn btn-sm btn-light border-end" onClick={() => insertMarkdown('#')} title="Heading">H1</button>
+                      <button type="button" className="btn btn-sm btn-light border-end" onClick={() => insertMarkdown('`')} title="Code">`</button>
+                      <button type="button" className="btn btn-sm btn-light" onClick={() => insertMarkdown('```')} title="Code Block">```</button>
+                  </div>
+                  <div className="d-flex flex-wrap gap-2">
+                      <button 
+                        type="button" 
+                        className={`btn btn-sm ${isEnhancing ? 'btn-secondary shadow-none' : 'btn-outline-primary shadow-sm'} d-flex align-items-center justify-content-center gap-2 px-3 py-2 rounded-pill transition-all flex-grow-1`} 
+                        onClick={handleEnhance}
+                        disabled={isEnhancing || !formData.content.trim()}
+                      >
+                          {isEnhancing ? (
+                              <>
+                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span className="text-capitalize">{enhanceStage}...</span>
+                              </>
+                          ) : (
+                              <>
+                                <span className="fs-6">✨</span>
+                                <span className="fw-bold">AI Enhance</span>
+                              </>
+                          )}
+                      </button>
+                      {(formData.content.trim().startsWith('{') || formData.content.trim().startsWith('[')) && (
+                          <button type="button" className="btn btn-sm btn-outline-info" onClick={formatJSON}>
+                              ✨ Format JSON
+                          </button>
+                      )}
+                  </div>
               </div>
           )}
 
           {/* Editor / Preview Area */}
           <div className="mb-3">
             {isPreview ? (
-                <div className="border rounded p-3 bg-body-tertiary overflow-auto" style={{ minHeight: '200px', maxHeight: '500px' }}>
-                    {formData.type === 'code' ? (
-                        <pre><code>{formData.content}</code></pre>
-                    ) : (
-                        <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{formData.content || '*No content*'}</ReactMarkdown>
-                    )}
+                <div className="border rounded p-3 bg-body-tertiary overflow-auto markdown-preview" style={{ minHeight: '300px', maxHeight: '600px' }}>
+                    {renderPreview()}
                 </div>
             ) : (
                 <textarea 

@@ -1,10 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useVault } from '../context/VaultContext';
 import NoteCard from './NoteCard';
 
 const NoteList = ({ onEdit }) => {
   const { state, filteredItems } = useVault();
   const { loading, error, filters } = state;
+
+  // Auto-scroll to first match when search query changes
+  useEffect(() => {
+    if (filters.search && filteredItems.length > 0) {
+        const timer = setTimeout(() => {
+            const firstMatch = document.querySelector('.row mark');
+            if (firstMatch) {
+                firstMatch.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }
+        }, 300); // Small delay to allow cards to render
+        return () => clearTimeout(timer);
+    }
+  }, [filters.search]);
 
   if (loading) return <div className="text-center mt-5"><div className="spinner-border text-primary" role="status"></div></div>;
   if (error) return <div className="alert alert-danger" role="alert">{error}</div>;
