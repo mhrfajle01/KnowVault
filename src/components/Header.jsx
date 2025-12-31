@@ -1,14 +1,17 @@
 import React, { useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useVault } from '../context/VaultContext';
+import { useAI } from '../context/AIContext';
 import { dbUtils } from '../utils/db';
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
   const { state, addItem } = useVault();
+  const { playAiSound } = useAI();
   const fileInputRef = useRef(null);
 
   const handleExport = () => {
+    playAiSound('success');
     const dataStr = JSON.stringify(state.items, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
@@ -49,6 +52,7 @@ const Header = () => {
                           count++;
                       }
                   }
+                  playAiSound('success');
                   alert(`Successfully imported ${count} items.`);
               } else {
                   alert('Invalid backup file format.');
@@ -94,7 +98,10 @@ const Header = () => {
 
            <button 
              className="btn btn-sm btn-outline-light" 
-             onClick={toggleTheme}
+             onClick={() => {
+                 playAiSound('fun');
+                 toggleTheme();
+             }}
              title="Toggle Theme"
            >
              {theme === 'light' ? '🌙' : '☀️'}

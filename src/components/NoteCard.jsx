@@ -4,10 +4,12 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
 import { useVault } from '../context/VaultContext';
 import { useUI } from '../context/UIContext';
+import { useAI } from '../context/AIContext';
 
 const NoteCard = ({ item, onEdit }) => {
-  const { deleteItem, setEditingItem, togglePin, toggleArchive, state: vaultState, moveToTrash, restoreFromTrash } = useVault();
+  const { deleteItem, setEditingItem, togglePin, toggleArchive, state: vaultState, moveToTrash, restoreFromTrash, setFilters } = useVault();
   const { showModal } = useUI();
+  const { playAiSound } = useAI();
   const { filters } = vaultState;
 
   const handleEdit = () => {
@@ -24,6 +26,7 @@ const NoteCard = ({ item, onEdit }) => {
     link.download = `${item.title.replace(/\s+/g, '-').toLowerCase()}.md`;
     link.click();
     URL.revokeObjectURL(url);
+    playAiSound('success');
   };
 
   const highlightText = (text, query) => {
@@ -42,7 +45,7 @@ const NoteCard = ({ item, onEdit }) => {
   const renderContentWithWikiLinks = (content) => {
     if (!content) return null;
     
-    const parts = content.split(/(\[\[.*?\]\])/g);
+    const parts = content.split(/(\[\[.*?\||\]\])/g);
     return parts.map((part, i) => {
       if (part.startsWith('[[') && part.endsWith(']]')) {
         const title = part.slice(2, -2);
@@ -53,6 +56,7 @@ const NoteCard = ({ item, onEdit }) => {
             style={{ cursor: 'pointer' }}
             onClick={(e) => {
                 e.stopPropagation();
+                playAiSound('info');
                 setFilters({ search: title, showArchived: false, showTrashed: false });
             }}
           >
@@ -64,26 +68,53 @@ const NoteCard = ({ item, onEdit }) => {
     });
   };
 
+  const handleShowMore = () => {
+      playAiSound('info');
+      showModal({
+          title: item.title,
+          content: (
+             <div className="markdown-preview">
+                {item.type === 'code' ? (
+                   <div className="bg-body-tertiary p-3 rounded border">
+                       <small className="text-muted d-block mb-1 border-bottom pb-1">{item.language}</small>
+                       <pre className="mb-0 overflow-auto"><code>{item.content}</code></pre>
+                   </div>
+                ) : (
+                   renderContentWithWikiLinks(item.content)
+                )}
+             </div>
+          ),
+          type: 'read',
+          onConfirm: () => {} 
+      });
+  };
+
   const handleDelete = () => {
     if (item.trashed) {
         showModal({
             title: 'Delete Permanently?',
-            message: `Are you sure you want to permanently delete "${item.title}"? This cannot be undone.`,
+            message: `Are you sure you want to permanently delete "${item.title}"? This cannot be undone.`, 
             type: 'danger',
-            onConfirm: () => deleteItem(item.id)
+            onConfirm: () => {
+                playAiSound('delete');
+                deleteItem(item.id);
+            }
         });
     } else {
+        playAiSound('delete');
         moveToTrash(item.id);
     }
   };
 
   const handleRestore = () => {
+    playAiSound('success');
     restoreFromTrash(item.id);
   };
 
   const handleCopy = () => {
     const text = `${item.title}\n\n${item.content}`;
     navigator.clipboard.writeText(text);
+    playAiSound('success');
     alert('Copied to clipboard! 📋');
   };
 
@@ -113,6 +144,8 @@ const NoteCard = ({ item, onEdit }) => {
     return minutes;
   };
 
+  const isLongContent = item.content.length > 300;
+
   return (
     <div className={`card mb-3 shadow-sm ${item.pinned ? 'border-primary border-2' : ''}`}>
       <div className="card-body p-3">
@@ -126,29 +159,35 @@ const NoteCard = ({ item, onEdit }) => {
              {!item.trashed && (
                  <>
                     <button 
-                        className="btn btn-sm btn-outline-secondary" 
+                        className="btn btn-sm btn-outline-secondary"
                         onClick={handleCopy}
                         title="Copy to Clipboard"
                     >
                         📋
                     </button>
                     <button 
-                        className="btn btn-sm btn-outline-info" 
+                        className="btn btn-sm btn-outline-info"
                         onClick={handleExportMarkdown}
                         title="Download as Markdown"
                     >
                         💾
                     </button>
                     <button 
-                        className={`btn btn-sm ${item.pinned ? 'btn-primary' : 'btn-outline-primary'}`} 
-                        onClick={() => togglePin(item.id)}
+                        className={`btn btn-sm ${item.pinned ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => {
+                            playAiSound('info');
+                            togglePin(item.id);
+                        }}
                         title={item.pinned ? "Unpin" : "Pin to top"}
                     >
                         📌
                     </button>
                     <button 
-                        className="btn btn-sm btn-outline-secondary" 
-                        onClick={() => toggleArchive(item.id)}
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => {
+                            playAiSound('info');
+                            toggleArchive(item.id);
+                        }}
                         title={item.archived ? "Restore" : "Archive"}
                     >
                         {item.archived ? '📤' : '📥'}
@@ -182,15 +221,24 @@ const NoteCard = ({ item, onEdit }) => {
 
         <div className="card-text mb-3 overflow-hidden">
             {item.type === 'code' ? (
-                 <div className="bg-body-tertiary p-3 rounded border">
+                 <div className="bg-body-tertiary p-3 rounded border" style={{ maxHeight: '200px', overflow: 'hidden' }}>
                     <small className="text-muted d-block mb-1 border-bottom pb-1">{item.language}</small>
                     <pre className="mb-0 overflow-auto"><code>{item.content}</code></pre>
                  </div>
             ) : (
                 <div className="markdown-preview" style={{ maxHeight: '150px', overflow: 'hidden', position: 'relative' }}>
                     {renderContentWithWikiLinks(item.content)}
-                    {item.content.length > 300 && <div className="fade-bottom"></div>}
+                    {isLongContent && <div className="fade-bottom"></div>}
                 </div>
+            )}
+            
+            {isLongContent && (
+                <button 
+                    className="btn btn-link btn-sm p-0 mt-2 text-decoration-none" 
+                    onClick={handleShowMore}
+                >
+                    Read full note ↗
+                </button>
             )}
         </div>
 
@@ -209,7 +257,10 @@ const NoteCard = ({ item, onEdit }) => {
                             key={link.id} 
                             className="badge bg-light text-primary border cursor-pointer"
                             style={{ cursor: 'pointer' }}
-                            onClick={() => setFilters({ search: link.title, showArchived: false, showTrashed: false })}
+                            onClick={() => {
+                                playAiSound('info');
+                                setFilters({ search: link.title, showArchived: false, showTrashed: false });
+                            }}
                         >
                             {link.title}
                         </span>

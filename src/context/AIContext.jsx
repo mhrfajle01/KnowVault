@@ -117,13 +117,106 @@ export const AIProvider = ({ children }) => {
            `* Unique Tags: ${tags}`;
   };
 
+  const playAiSound = (type) => {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+        
+        if (type === 'success') {
+            // Rising chime (C5 -> G5)
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, now); 
+            osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+        } else if (type === 'fun') {
+             // 8-bit jump
+             osc.type = 'square';
+             osc.frequency.setValueAtTime(220, now);
+             osc.frequency.linearRampToValueAtTime(880, now + 0.1);
+             gain.gain.setValueAtTime(0.05, now);
+             gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+             osc.start(now);
+             osc.stop(now + 0.1);
+        } else if (type === 'delete') {
+             // Descending low tone
+             osc.type = 'sawtooth';
+             osc.frequency.setValueAtTime(150, now);
+             osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+             gain.gain.setValueAtTime(0.05, now);
+             gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+             osc.start(now);
+             osc.stop(now + 0.3);
+        } else {
+             // Subtle pop
+             osc.type = 'triangle';
+             osc.frequency.setValueAtTime(800, now);
+             gain.gain.setValueAtTime(0.05, now);
+             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+             osc.start(now);
+             osc.stop(now + 0.1);
+        }
+    } catch (e) {
+        console.error("Audio error", e);
+    }
+  };
+
   const handleAction = (action) => {
     if (!action) return;
     console.log("AI executing action:", action);
     
     switch (action) {
         case 'create_note':
-            setEditingItem(null);
+            setEditingItem({
+                type: 'note',
+                title: '',
+                content: '',
+                tags: [],
+                trashed: false,
+                archived: false,
+                pinned: false
+            });
+            break;
+        case 'create_code':
+            setEditingItem({
+                type: 'code',
+                title: 'New Snippet',
+                content: '// Code here',
+                language: 'javascript',
+                tags: [],
+                trashed: false,
+                archived: false,
+                pinned: false
+            });
+            break;
+        case 'create_link':
+            setEditingItem({
+                type: 'link',
+                title: 'New Link',
+                url: 'https://',
+                content: '',
+                tags: [],
+                trashed: false,
+                archived: false,
+                pinned: false
+            });
+            break;
+        case 'view_trash':
+            setFilters({ showTrashed: true, showArchived: false, type: 'all' });
+            break;
+        case 'filter_pinned':
+            // Reset filters, pinned items are always at the top
+            setFilters({ showTrashed: false, showArchived: false, type: 'all', tag: null, search: '' });
             break;
         case 'clear_chat':
             setChatHistory([]);
@@ -281,6 +374,8 @@ export const AIProvider = ({ children }) => {
           if (result) {
              responseText = result.text;
              
+             if (result.sound) playAiSound(result.sound);
+
              if (result.action) {
                  if (result.action === 'clear_chat') {
                      setChatHistory([]);
@@ -427,7 +522,8 @@ export const AIProvider = ({ children }) => {
       isAiLoading, 
       clearHistory,
       isOpen,
-      toggleChat
+      toggleChat,
+      playAiSound
     }}>
       {children}
     </AIContext.Provider>

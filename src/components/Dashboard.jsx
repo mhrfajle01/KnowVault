@@ -33,8 +33,8 @@ const Dashboard = () => {
     const untagged = items.filter(i => i.tags.length === 0).length;
     const insights = [];
     if (untagged > items.length / 2) insights.push("Try adding more tags to your notes for better organization.");
-    if (stats.typeCount.link > stats.typeCount.note) insights.push("You're saving a lot of links! Maybe write some notes about them?");
-    if (items.length > 20 && stats.topTags.length < 3) insights.push("Consider diversifying your tags to group related ideas.");
+    if (typeCount.link > typeCount.note) insights.push("You're saving a lot of links! Maybe write some notes about them?");
+    if (items.length > 20 && topTags.length < 3) insights.push("Consider diversifying your tags to group related ideas.");
     if (insights.length === 0) insights.push("Your vault is looking well-organized! Keep it up.");
 
     return { typeCount, topTags, recent, insights, tagUsage };
@@ -42,90 +42,137 @@ const Dashboard = () => {
 
   return (
     <div className="container pb-5">
-      <h3 className="mb-4 d-flex align-items-center gap-2">
+      <h3 className="mb-4 d-flex align-items-center gap-2 fw-bold text-gradient">
         <span>📊</span> Dashboard
       </h3>
       
       <div className="row g-4 mb-4">
-        <div className="col-md-4">
-          <div className="card h-100 shadow-sm border-primary border-start border-4">
-            <div className="card-body text-center d-flex flex-column justify-content-center">
-              <h1 className="display-4 fw-bold text-primary mb-0">{items.length}</h1>
-              <p className="text-muted fw-bold">Total Items</p>
+        {/* Total Items Card */}
+        <div className="col-12 col-md-4">
+          <div className="card h-100 shadow-sm border-0 bg-gradient-primary text-white">
+            <div className="card-body text-center d-flex flex-column justify-content-center p-4">
+              <h1 className="display-4 display-md-3 fw-bold mb-0 drop-shadow">{items.length}</h1>
+              <p className="lead fw-bold opacity-75">Total Items</p>
             </div>
           </div>
         </div>
-        <div className="col-md-8">
-           <div className="card h-100 shadow-sm">
-             <div className="card-header fw-bold bg-body-tertiary">Distribution by Type</div>
-             <div className="card-body d-flex justify-content-around align-items-center">
-                <div className="text-center">
-                   <h3 className="mb-0">📝 {stats.typeCount.note}</h3>
-                   <small className="text-muted">Notes</small>
-                </div>
-                <div className="text-center border-start border-end px-4">
-                   <h3 className="mb-0">🔗 {stats.typeCount.link}</h3>
-                   <small className="text-muted">Links</small>
-                </div>
-                <div className="text-center">
-                   <h3 className="mb-0">💻 {stats.typeCount.code}</h3>
-                   <small className="text-muted">Snippets</small>
+
+        {/* Distribution Card */}
+        <div className="col-12 col-md-8">
+           <div className="card h-100 shadow-sm border-0">
+             <div className="card-header fw-bold text-white border-0 py-3" style={{ background: 'linear-gradient(45deg, #a18cd1 0%, #fbc2eb 100%)' }}>
+                Distribution by Type
+             </div>
+             <div className="card-body p-4">
+                <div className="row g-3 text-center align-items-center h-100">
+                    <div className="col-4 col-md-4">
+                        <div className="p-2 rounded hover-scale transition-all">
+                            <h2 className="mb-1 fw-bold">📝 {stats.typeCount.note}</h2>
+                            <small className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Notes</small>
+                        </div>
+                    </div>
+                    <div className="col-4 col-md-4 border-start border-end border-secondary-subtle">
+                         <div className="p-2 hover-scale transition-all">
+                            <h2 className="mb-1 fw-bold">🔗 {stats.typeCount.link}</h2>
+                            <small className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Links</small>
+                         </div>
+                    </div>
+                    <div className="col-4 col-md-4">
+                         <div className="p-2 rounded hover-scale transition-all">
+                            <h2 className="mb-1 fw-bold">💻 {stats.typeCount.code}</h2>
+                            <small className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Snippets</small>
+                         </div>
+                    </div>
                 </div>
              </div>
            </div>
         </div>
       </div>
 
-      <div className="card mb-4 shadow-sm">
-        <div className="card-header fw-bold bg-body-tertiary">✨ AI Insights</div>
-        <div className="card-body">
+      {/* AI Insights */}
+      <div className="card mb-4 shadow-sm border-0 overflow-hidden">
+        <div className="card-header fw-bold text-white border-0 py-3" style={{ background: 'linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)' }}>
+            ✨ AI Insights
+        </div>
+        <div className="card-body bg-body-tertiary">
             {stats.insights.map((insight, i) => (
-                <div key={i} className="d-flex align-items-center gap-2 text-primary mb-2">
-                    <span className="fs-4">💡</span>
-                    <span className="fst-italic">{insight}</span>
+                <div key={i} className="d-flex align-items-start align-items-sm-center gap-3 p-3 mb-2 bg-body rounded shadow-sm border-start border-4 border-info">
+                    <span className="fs-4 flex-shrink-0">💡</span>
+                    <span className="fst-italic small-md">{insight}</span>
                 </div>
             ))}
         </div>
       </div>
 
       <div className="row g-4">
-        <div className="col-md-6">
-           <div className="card h-100 shadow-sm">
-             <div className="card-header fw-bold bg-body-tertiary">Top Tags</div>
+        {/* Top Tags */}
+        <div className="col-12 col-md-6">
+           <div className="card h-100 shadow-sm border-0">
+             <div className="card-header fw-bold text-white border-0 py-3" style={{ background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' }}>
+                Top Tags
+             </div>
              <div className="card-body">
-                <div className="d-flex flex-wrap gap-2 mb-3">
+                <div className="d-flex flex-wrap gap-2 mb-4 p-2 bg-body-tertiary rounded">
                     {Object.entries(stats.tagUsage).map(([tag, count]) => (
                         <span 
                             key={tag} 
-                            className="badge bg-primary-subtle text-primary rounded-pill border border-primary-subtle"
-                            style={{ fontSize: `${0.8 + (count * 0.1)}rem` }}
+                            className="badge bg-body text-body rounded-pill border shadow-sm"
+                            style={{ fontSize: `${Math.min(0.8 + (count * 0.1), 1.2)}rem`, padding: '0.5em 0.8em' }}
                         >
-                            #{tag}
+                            #{tag} <span className="opacity-50 ms-1">({count})</span>
                         </span>
                     ))}
-                    {allTags.length === 0 && <p className="text-muted small">No tags used yet.</p>}
+                    {allTags.length === 0 && <p className="text-muted small m-0 p-2">No tags used yet. Add tags to organize your vault!</p>}
                 </div>
-                <ul className="list-group list-group-flush border-top">
-                    {stats.topTags.map(([tag, count]) => (
-                        <li key={tag} className="list-group-item d-flex justify-content-between align-items-center px-0">
-                           <span>#{tag}</span>
-                           <span className="badge bg-secondary rounded-pill">{count}</span>
-                        </li>
-                    ))}
-                </ul>
+                
+                {stats.topTags.length > 0 && (
+                    <>
+                        <h6 className="text-muted text-uppercase text-xs fw-bold mb-3">Most Used</h6>
+                        <ul className="list-group list-group-flush">
+                            {stats.topTags.map(([tag, count], idx) => (
+                                <li key={tag} className="list-group-item d-flex justify-content-between align-items-center px-0 border-bottom-dashed">
+                                <div className="d-flex align-items-center gap-2">
+                                    <span className="badge bg-primary rounded-circle" style={{width: '24px', height: '24px', display:'flex', alignItems:'center', justifyContent:'center', fontSize: '0.8rem'}}>{idx + 1}</span>
+                                    <span className="fw-medium text-truncate" style={{ maxWidth: '150px' }}>#{tag}</span>
+                                </div>
+                                <span className="badge bg-secondary-subtle text-body border rounded-pill">{count}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                )}
              </div>
            </div>
         </div>
-        <div className="col-md-6">
-           <div className="card h-100 shadow-sm">
-             <div className="card-header fw-bold bg-body-tertiary">Recently Updated</div>
+
+        {/* Recent Activity */}
+        <div className="col-12 col-md-6">
+           <div className="card h-100 shadow-sm border-0">
+             <div className="card-header fw-bold text-white border-0 py-3" style={{ background: 'linear-gradient(to right, #43e97b 0%, #38f9d7 100%)' }}>
+                Recently Updated
+             </div>
              <div className="list-group list-group-flush">
                 {stats.recent.map(item => (
-                    <div key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
-                        <h6 className="mb-0 text-truncate" style={{maxWidth: '70%'}}>{item.title}</h6>
-                        <small className="text-muted">{new Date(item.updatedAt).toLocaleDateString()}</small>
+                    <div key={item.id} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom-dashed px-2 px-sm-3">
+                        <div className="d-flex align-items-center gap-2 gap-sm-3 overflow-hidden" style={{ minWidth: 0 }}>
+                            <span className="fs-5 flex-shrink-0">{item.type === 'link' ? '🔗' : (item.type === 'code' ? '💻' : '📝')}</span>
+                            <div className="d-flex flex-column text-truncate" style={{ minWidth: 0 }}>
+                                <h6 className="mb-0 text-truncate fw-bold">{item.title}</h6>
+                                <small className="text-muted text-truncate d-block">
+                                    {item.tags.length > 0 ? item.tags.map(t => `#${t}`).join(' ') : 'No tags'}
+                                </small>
+                            </div>
+                        </div>
+                        <small className="text-muted text-nowrap ms-2 bg-body-tertiary px-2 py-1 rounded flex-shrink-0" style={{ fontSize: '0.75rem' }}>
+                            {new Date(item.updatedAt).toLocaleDateString()}
+                        </small>
                     </div>
                 ))}
+                {stats.recent.length === 0 && (
+                    <div className="text-center py-5 text-muted">
+                        No items yet. Start creating!
+                    </div>
+                )}
              </div>
            </div>
         </div>

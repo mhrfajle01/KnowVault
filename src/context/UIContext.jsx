@@ -7,16 +7,18 @@ export const UIProvider = ({ children }) => {
     isOpen: false,
     title: '',
     message: '',
-    type: 'info', // info, confirm, danger
+    content: null,
+    type: 'info', // info, confirm, danger, read
     onConfirm: null,
     onCancel: null
   });
 
-  const showModal = ({ title, message, type = 'info', onConfirm, onCancel }) => {
+  const showModal = ({ title, message, content, type = 'info', onConfirm, onCancel }) => {
     setModalConfig({
       isOpen: true,
       title,
       message,
+      content,
       type,
       onConfirm,
       onCancel

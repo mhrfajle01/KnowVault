@@ -1,9 +1,16 @@
 import React from 'react';
 import { useVault } from '../context/VaultContext';
+import { useAI } from '../context/AIContext';
 
 const Sidebar = () => {
   const { state, setFilters, allTags, emptyTrash } = useVault();
+  const { playAiSound } = useAI();
   const { filters } = state;
+
+  const handleFilterChange = (newFilters) => {
+    playAiSound('info');
+    setFilters(newFilters);
+  };
 
   return (
     <div className="card shadow-sm border-0 p-3 mb-4">
@@ -11,19 +18,19 @@ const Sidebar = () => {
       <div className="list-group list-group-flush mb-4">
         <button
             className={`list-group-item list-group-item-action border-0 px-2 py-1 rounded-2 mb-1 ${!filters.showArchived && !filters.showTrashed ? 'active bg-primary' : ''}`}
-            onClick={() => setFilters({ showArchived: false, showTrashed: false })}
+            onClick={() => handleFilterChange({ showArchived: false, showTrashed: false })}
         >
             <span>📥 Active Vault</span>
         </button>
         <button
             className={`list-group-item list-group-item-action border-0 px-2 py-1 rounded-2 mb-1 ${filters.showArchived ? 'active bg-primary' : ''}`}
-            onClick={() => setFilters({ showArchived: true, showTrashed: false })}
+            onClick={() => handleFilterChange({ showArchived: true, showTrashed: false })}
         >
             <span>📁 Archive</span>
         </button>
         <button
             className={`list-group-item list-group-item-action border-0 px-2 py-1 rounded-2 mb-1 ${filters.showTrashed ? 'active bg-danger text-white' : ''}`}
-            onClick={() => setFilters({ showTrashed: true, showArchived: false })}
+            onClick={() => handleFilterChange({ showTrashed: true, showArchived: false })}
         >
             <span>🗑️ Trash</span>
         </button>
@@ -33,6 +40,7 @@ const Sidebar = () => {
           <div className="mb-4">
               <button className="btn btn-sm btn-outline-danger w-100" onClick={() => {
                   if (window.confirm("Permanently empty all items in trash?")) {
+                      playAiSound('delete');
                       emptyTrash();
                   }
               }}>Empty Trash 🔥</button>
@@ -45,7 +53,7 @@ const Sidebar = () => {
           <button
             key={type}
             className={`list-group-item list-group-item-action border-0 px-2 py-1 rounded-2 mb-1 ${filters.type === type ? 'active bg-primary' : ''}`}
-            onClick={() => setFilters({ type })}
+            onClick={() => handleFilterChange({ type })}
           >
             <span className="text-capitalize">{type}s</span>
           </button>
@@ -56,7 +64,7 @@ const Sidebar = () => {
       <div className="d-flex flex-wrap gap-2">
         <button
           className={`btn btn-sm rounded-pill ${!filters.tag ? 'btn-primary' : 'btn-outline-secondary'}`}
-          onClick={() => setFilters({ tag: null })}
+          onClick={() => handleFilterChange({ tag: null })}
         >
           All Tags
         </button>
@@ -64,7 +72,7 @@ const Sidebar = () => {
           <button
             key={tag}
             className={`btn btn-sm rounded-pill ${filters.tag === tag ? 'btn-primary' : 'btn-outline-secondary'}`}
-            onClick={() => setFilters({ tag })}
+            onClick={() => handleFilterChange({ tag })}
           >
             #{tag}
           </button>
