@@ -21,6 +21,8 @@ export const localKnowledge = [
   { keywords: ['voice', 'microphone', 'dictate', 'listen'], answer: "I can listen to you! Click the microphone 🎤 icon in the chat bar to speak your commands." },
   { keywords: ['tag this', 'suggest tags', 'auto tag'], answer: "Analyzing your content for tag suggestions...", action: 'suggest_tags' },
   { keywords: ['note about', 'remind me to', 'quick note'], answer: "I've created a quick note for you based on our conversation.", action: 'quick_note' },
+  { keywords: ['daily', 'today', 'journal entry'], answer: "Opening your daily note for today.", action: 'daily_note' },
+  { keywords: ['backlinks', 'who links here', 'connections'], answer: "Look at the bottom of any note to see its connections! I've added a 'Linked from' section." },
   { keywords: ['trash', 'recycle bin', 'delete safely'], answer: "Deleted items now go to the Trash first. You can restore them or empty the trash permanently from the sidebar." },
   { keywords: ['wiki', 'linking', 'internal link'], answer: "You can link notes using `[[Note Title]]`. These are now clickable and will instantly search for the linked note!" },
   { keywords: ['highlight', 'search mark'], answer: "When you search, I'll highlight the matching terms in yellow within your notes." },

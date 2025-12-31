@@ -331,6 +331,25 @@ export const AIProvider = ({ children }) => {
                         responseText = "Please open a note first to use tag suggestions.";
                     }
                  }
+                 if (result.action === 'daily_note') {
+                    const today = new Date().toISOString().split('T')[0];
+                    const existing = vaultState.items.find(i => i.title === today && !i.trashed);
+                    if (existing) {
+                        setEditingItem(existing);
+                        responseText = `Found your daily note for ${today}. Opening it now! 📅`;
+                    } else {
+                        setEditingItem({
+                            type: 'note',
+                            title: today,
+                            content: `# Daily Note: ${today}\n\n## Goals\n- \n\n## Notes\n\n## Log\n- `,
+                            tags: ['daily'],
+                            trashed: false,
+                            archived: false,
+                            pinned: true
+                        });
+                        responseText = `Created a new daily note for ${today}. Happy journaling! ✍️`;
+                    }
+                 }
                  handleAction(result.action);
              }
 

@@ -81,6 +81,18 @@ const NoteCard = ({ item, onEdit }) => {
     restoreFromTrash(item.id);
   };
 
+  const handleCopy = () => {
+    const text = `${item.title}\n\n${item.content}`;
+    navigator.clipboard.writeText(text);
+    alert('Copied to clipboard! 📋');
+  };
+
+  const backlinks = vaultState.items.filter(i => 
+    i.id !== item.id && 
+    !i.trashed && 
+    i.content.includes(`[[${item.title}]]`)
+  );
+
   const getIcon = () => {
     switch(item.type) {
       case 'link': return '🔗';
@@ -113,6 +125,13 @@ const NoteCard = ({ item, onEdit }) => {
           <div className="d-flex gap-1 ms-auto">
              {!item.trashed && (
                  <>
+                    <button 
+                        className="btn btn-sm btn-outline-secondary" 
+                        onClick={handleCopy}
+                        title="Copy to Clipboard"
+                    >
+                        📋
+                    </button>
                     <button 
                         className="btn btn-sm btn-outline-info" 
                         onClick={handleExportMarkdown}
@@ -180,6 +199,24 @@ const NoteCard = ({ item, onEdit }) => {
             <span key={idx} className="badge bg-secondary me-1 rounded-pill">#{tag}</span>
           ))}
         </div>
+
+        {backlinks.length > 0 && (
+            <div className="mt-3 pt-2 border-top">
+                <small className="text-muted d-block mb-1">🔗 Linked from:</small>
+                <div className="d-flex flex-wrap gap-2">
+                    {backlinks.map(link => (
+                        <span 
+                            key={link.id} 
+                            className="badge bg-light text-primary border cursor-pointer"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setFilters({ search: link.title, showArchived: false, showTrashed: false })}
+                        >
+                            {link.title}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        )}
       </div>
       <div className="card-footer text-muted small d-flex justify-content-between align-items-center">
         <span>Updated {formatDate(item.updatedAt)}</span>
