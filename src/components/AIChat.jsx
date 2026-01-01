@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { useAI } from '../context/AIContext';
+import { itemVariants } from '../utils/animations';
 
 const AIChat = () => {
   const { 
@@ -188,8 +189,9 @@ const AIChat = () => {
                 {chatHistory.map((msg, idx) => (
                     <motion.div 
                       key={idx} 
-                      initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      variants={itemVariants}
+                      initial="hidden"
+                      animate="visible"
                       className={`d-flex mb-3 ${msg.role === 'user' ? 'justify-content-end' : 'justify-content-start'}`}
                     >
                         <div className={`p-3 rounded-4 shadow-sm ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-body-tertiary'}`} style={{ maxWidth: '85%' }}>

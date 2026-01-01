@@ -6,6 +6,7 @@ import 'highlight.js/styles/github.css';
 import { useVault } from '../context/VaultContext';
 import { useUI } from '../context/UIContext';
 import { useAI } from '../context/AIContext';
+import { hoverScale, pulse } from '../utils/animations';
 
 const NoteCard = ({ item, onEdit }) => {
   const { deleteItem, setEditingItem, togglePin, toggleArchive, state: vaultState, moveToTrash, restoreFromTrash, setFilters } = useVault();
@@ -192,16 +193,15 @@ const NoteCard = ({ item, onEdit }) => {
 
   return (
     <motion.div 
-      whileHover={{ y: -5, transition: { duration: 0.2 } }}
+      {...hoverScale}
       className={`card h-100 shadow-sm ${item.pinned ? 'border-primary border-2' : ''} ${matchCount > 0 ? 'border-warning' : ''}`}
     >
       <div className="card-body p-3">
         {matchCount > 0 && (
             <div className="position-absolute top-0 end-0 m-2">
                 <motion.span 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="badge bg-warning text-dark animate-pulse shadow-sm"
+                    {...pulse}
+                    className="badge bg-warning text-dark shadow-sm"
                 >
                     ✨ {matchCount} {matchCount === 1 ? 'match' : 'matches'}
                 </motion.span>

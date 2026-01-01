@@ -11,6 +11,7 @@ import AIChat from './components/AIChat';
 import { useTheme } from './context/ThemeContext';
 import { useAI } from './context/AIContext';
 import { useUI } from './context/UIContext';
+import { pageTransition } from './utils/animations';
 import './App.css';
 
 function App() {
@@ -89,10 +90,10 @@ function App() {
       <AnimatePresence mode="wait">
         <motion.div
             key={view}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+            variants={pageTransition}
+            initial="initial"
+            animate="animate"
+            exit="exit"
         >
           {view === 'vault' ? (
               <div className="container">

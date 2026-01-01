@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
 import { useUI } from '../context/UIContext';
+import { slideIn } from '../utils/animations';
 
 const Sidebar = () => {
   const { state, setFilters, allTags, emptyTrash, factoryReset, triggerScroll } = useVault();
@@ -43,7 +44,12 @@ const Sidebar = () => {
   const isActiveView = !filters.showArchived && !filters.showTrashed;
 
   return (
-    <div className="card shadow-sm border-0 p-3 mb-4 rounded-4 bg-body">
+    <motion.div 
+      variants={slideIn}
+      initial="initial"
+      animate="animate"
+      className="card shadow-sm border-0 p-3 mb-4 rounded-4 bg-body"
+    >
       <div className="mb-4">
         <h6 className="text-uppercase text-muted small fw-bold mb-3 d-flex align-items-center">
             <span className="me-2">🔭</span> View
@@ -175,7 +181,7 @@ const Sidebar = () => {
               <span className="fw-bold small text-uppercase">Factory Reset</span>
           </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

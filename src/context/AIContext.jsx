@@ -18,8 +18,8 @@ export const AIProvider = ({ children }) => {
   const { toggleTheme } = useTheme();
   const { showModal } = useUI();
 
-  const [apiKey, setApiKey] = useState('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');
-  const [provider, setProvider] = useState('deepseek'); // gemini, deepseek, or local
+  const [apiKey, setApiKey] = useState('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');
+  const [provider, setProvider] = useState('gemini'); // gemini, deepseek, or local
   const [chatHistory, setChatHistory] = useState([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -468,18 +468,30 @@ export const AIProvider = ({ children }) => {
           }
 
       } else if (provider === 'gemini') {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanKey}`, {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${cleanKey}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'KnowVault'
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.0-flash-001",
+            messages: [{ role: "user", content: fullPrompt }],
+            stream: false
+          })
         });
         
         if (!response.ok) {
             const errData = await response.json();
+            if (errData.error?.message === "User not found.") {
+                throw new Error("API Key invalid or 'User not found' on OpenRouter. Please check your API key in settings.");
+            }
             throw new Error(errData.error?.message || `HTTP Error ${response.status}`);
         }
         const data = await response.json();
-        responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        responseText = data.choices?.[0]?.message?.content;
 
       } else {
         // DeepSeek via OpenRouter
@@ -500,6 +512,9 @@ export const AIProvider = ({ children }) => {
 
         if (!response.ok) {
             const errData = await response.json();
+            if (errData.error?.message === "User not found.") {
+                throw new Error("API Key invalid or 'User not found' on OpenRouter. Please check your API key in settings.");
+            }
             throw new Error(errData.error?.message || `HTTP Error ${response.status}`);
         }
         const data = await response.json();
@@ -622,13 +637,29 @@ export const AIProvider = ({ children }) => {
     try {
         let enhanced = "";
         if (provider === 'gemini') {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanKey}`, {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${cleanKey}`,
+                    'HTTP-Referer': window.location.origin,
+                    'X-Title': 'KnowVault'
+                },
+                body: JSON.stringify({
+                    model: "google/gemini-2.0-flash-001",
+                    messages: [{ role: "user", content: prompt }],
+                    stream: false
+                })
             });
+            if (!response.ok) {
+                const errData = await response.json();
+                if (errData.error?.message === "User not found.") {
+                    throw new Error("API Key invalid or 'User not found' on OpenRouter. Please check your API key in settings.");
+                }
+                throw new Error(errData.error?.message || `HTTP Error ${response.status}`);
+            }
             const data = await response.json();
-            enhanced = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            enhanced = data.choices?.[0]?.message?.content;
         } else {
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',

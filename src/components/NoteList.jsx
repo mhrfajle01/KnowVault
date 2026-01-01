@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 import NoteCard from './NoteCard';
+import { containerVariants, itemVariants } from '../utils/animations';
 
 const NoteList = ({ onEdit }) => {
   const { state, filteredItems } = useVault();
@@ -83,23 +84,26 @@ const NoteList = ({ onEdit }) => {
   }
 
   return (
-    <div className="row note-list-container">
+    <motion.div 
+      className="row note-list-container"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <AnimatePresence mode="popLayout">
         {filteredItems.map(item => (
           <motion.div 
             key={item.id} 
             layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            variants={itemVariants}
             exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
             className="col-12 mb-3"
           >
             <NoteCard item={item} onEdit={onEdit} />
           </motion.div>
         ))}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };
 

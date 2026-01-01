@@ -5,6 +5,7 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
 import { useUI } from '../context/UIContext';
 import { useVault } from '../context/VaultContext';
+import { scaleUp } from '../utils/animations';
 
 const CustomModal = () => {
   const { modalConfig, closeModal } = useUI();
@@ -199,10 +200,10 @@ const CustomModal = () => {
             onClick={closeModal}
           />
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 30 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            variants={scaleUp}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             className={`card shadow-2xl border-0 overflow-hidden ${isReadMode ? 'reader-modal' : ''}`}
             style={{
               maxWidth: isReadMode ? '850px' : '450px',

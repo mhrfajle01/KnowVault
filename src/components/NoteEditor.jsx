@@ -6,6 +6,7 @@ import 'highlight.js/styles/github.css'; // Light theme for code
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
 import { useUI } from '../context/UIContext';
+import { scaleUp } from '../utils/animations';
 
 const NoteEditor = () => {
   const { state, addItem, updateItem, setEditingItem, allTags, setFilters } = useVault();
@@ -274,8 +275,9 @@ const NoteEditor = () => {
   return (
     <motion.div 
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      variants={scaleUp}
+      initial="initial"
+      animate="animate"
       className="card mb-4 shadow-sm"
     >
       <div className="card-header d-flex justify-content-between align-items-center">

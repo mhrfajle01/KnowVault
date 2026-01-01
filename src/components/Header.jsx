@@ -5,6 +5,7 @@ import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
 import { useUI } from '../context/UIContext';
 import { dbUtils } from '../utils/db';
+import { slideInDown } from '../utils/animations';
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
@@ -88,7 +89,12 @@ const Header = () => {
   };
 
   return (
-    <nav className={`navbar navbar-expand-lg ${theme === 'dark' ? 'navbar-dark bg-body-tertiary border-bottom' : 'navbar-dark bg-gradient-primary'} mb-4 transition-colors`}>
+    <motion.nav 
+      variants={slideInDown}
+      initial="initial"
+      animate="animate"
+      className={`navbar navbar-expand-lg ${theme === 'dark' ? 'navbar-dark bg-body-tertiary border-bottom' : 'navbar-dark bg-gradient-primary'} mb-4 transition-colors`}
+    >
       <div className="container d-flex flex-wrap justify-content-between align-items-center">
         <motion.span 
           initial={{ opacity: 0, x: -20 }}
@@ -145,10 +151,11 @@ const Header = () => {
            >
              {theme === 'light' ? '🌙' : '☀️'}
            </motion.button>
-        </div>
-      </div>
-    </nav>
-  );
-};
-
-export default Header;
+                </div>
+              </div>
+            </motion.nav>
+          );
+        };
+        
+        export default Header;
+        
