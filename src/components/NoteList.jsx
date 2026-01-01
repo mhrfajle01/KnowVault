@@ -108,18 +108,20 @@ const NoteList = ({ onEdit }) => {
 
   return (
     <motion.div 
+      key={`${filters.showArchived}-${filters.showTrashed}`}
       className="row note-list-container"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
     >
-      <AnimatePresence mode="popLayout">
-        {filteredItems.map(item => (
+      <AnimatePresence>
+        {filteredItems.map((item, index) => (
           <motion.div 
             key={item.id} 
-            layout
-            variants={itemVariants}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ delay: Math.min(index * 0.05, 0.5), duration: 0.2 }}
             className="col-12 mb-3"
           >
             <NoteCard item={item} onEdit={onEdit} />

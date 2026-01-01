@@ -205,8 +205,14 @@ const NoteCard = ({ item, onEdit }) => {
   return (
     <motion.div 
       {...hoverScale}
-      variants={glow}
-      animate={isGlowing ? "animate" : "initial"}
+      animate={isGlowing ? { 
+        boxShadow: [
+          "0 0 0px rgba(var(--bs-primary-rgb), 0)",
+          "0 0 20px rgba(var(--bs-primary-rgb), 0.6)",
+          "0 0 0px rgba(var(--bs-primary-rgb), 0)"
+        ] 
+      } : {}}
+      transition={{ duration: 0.8 }}
       className={`card h-100 shadow-sm ${item.pinned ? 'border-primary border-2' : ''} ${matchCount > 0 ? 'border-warning' : ''}`}
     >
       <div className="card-body p-3">

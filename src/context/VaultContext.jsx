@@ -93,8 +93,6 @@ export const VaultProvider = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Reduced delay for better snappiness while still showing skeleton
-        await new Promise(resolve => setTimeout(resolve, 300));
         const items = await dbUtils.getAll();
         dispatch({ type: 'SET_ITEMS', payload: Array.isArray(items) ? items : [] });
       } catch (err) {
