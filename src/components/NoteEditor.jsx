@@ -6,7 +6,7 @@ import 'highlight.js/styles/github.css'; // Light theme for code
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
 import { useUI } from '../context/UIContext';
-import { scaleUp } from '../utils/animations';
+import { scaleUp, loadingDots, loadingDot } from '../utils/animations';
 
 const NoteEditor = () => {
   const { state, addItem, updateItem, setEditingItem, allTags, setFilters } = useVault();
@@ -360,10 +360,19 @@ const NoteEditor = () => {
                         disabled={isEnhancing || !formData.content.trim()}
                       >
                           {isEnhancing ? (
-                              <>
-                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                <span className="text-capitalize">{enhanceStage}...</span>
-                              </>
+                              <div className="d-flex align-items-center gap-2">
+                                <motion.div 
+                                    variants={loadingDots}
+                                    initial="initial"
+                                    animate="animate"
+                                    className="d-flex gap-1"
+                                >
+                                    <motion.span variants={loadingDot} className="rounded-circle bg-white" style={{ width: '4px', height: '4px' }} />
+                                    <motion.span variants={loadingDot} className="rounded-circle bg-white" style={{ width: '4px', height: '4px' }} />
+                                    <motion.span variants={loadingDot} className="rounded-circle bg-white" style={{ width: '4px', height: '4px' }} />
+                                </motion.div>
+                                <span className="text-capitalize small fw-bold">{enhanceStage}...</span>
+                              </div>
                           ) : (
                               <>
                                 <span className="fs-6">✨</span>

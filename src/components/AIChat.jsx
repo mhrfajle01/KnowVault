@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { useAI } from '../context/AIContext';
-import { itemVariants } from '../utils/animations';
+import { itemVariants, loadingDots, loadingDot } from '../utils/animations';
 
 const AIChat = () => {
   const { 
@@ -207,12 +207,18 @@ const AIChat = () => {
                 ))}
                 {isAiLoading && (
                     <div className="d-flex justify-content-start mb-3">
-                        <div className="bg-body p-3 rounded-3 shadow-sm">
-                            <div className="spinner-dots">
-                                <span className="spinner-grow spinner-grow-sm text-primary me-1" role="status"></span>
-                                <span className="spinner-grow spinner-grow-sm text-primary me-1" role="status" style={{animationDelay: '0.2s'}}></span>
-                                <span className="spinner-grow spinner-grow-sm text-primary" role="status" style={{animationDelay: '0.4s'}}></span>
-                            </div>
+                        <div className="bg-body p-3 rounded-4 shadow-sm border">
+                            <motion.div 
+                                variants={loadingDots}
+                                initial="initial"
+                                animate="animate"
+                                className="d-flex gap-1 align-items-center"
+                                style={{ height: '20px' }}
+                            >
+                                <motion.span variants={loadingDot} className="rounded-circle bg-primary" style={{ width: '8px', height: '8px' }} />
+                                <motion.span variants={loadingDot} className="rounded-circle bg-primary" style={{ width: '8px', height: '8px' }} />
+                                <motion.span variants={loadingDot} className="rounded-circle bg-primary" style={{ width: '8px', height: '8px' }} />
+                            </motion.div>
                         </div>
                     </div>
                 )}

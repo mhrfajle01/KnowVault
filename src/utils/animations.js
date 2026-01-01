@@ -95,3 +95,34 @@ export const staggeredContainer = {
     }
   }
 };
+
+export const loadingDots = {
+  animate: {
+    transition: {
+      staggerChildren: 0.2
+    }
+  }
+};
+
+export const loadingDot = {
+  animate: {
+    y: ["0%", "-50%", "0%"],
+    transition: {
+      duration: 0.6,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+export const skeleton = {
+  initial: { opacity: 0.3 },
+  animate: {
+    opacity: [0.3, 0.6, 0.3],
+    transition: {
+      duration: 1.5,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};

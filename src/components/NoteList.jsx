@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 import NoteCard from './NoteCard';
-import { containerVariants, itemVariants } from '../utils/animations';
+import { containerVariants, itemVariants, skeleton } from '../utils/animations';
 
 const NoteList = ({ onEdit }) => {
   const { state, filteredItems } = useVault();
@@ -57,7 +57,30 @@ const NoteList = ({ onEdit }) => {
     }
   }, [scrollTrigger]);
 
-  if (loading) return <div className="text-center mt-5"><div className="spinner-border text-primary" role="status"></div></div>;
+  if (loading) {
+    return (
+      <div className="row">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="col-12 mb-3">
+            <motion.div 
+              variants={skeleton}
+              initial="initial"
+              animate="animate"
+              className="card shadow-sm border-0"
+              style={{ height: '150px', background: 'var(--bs-tertiary-bg)' }}
+            >
+              <div className="card-body">
+                 <div className="bg-secondary opacity-25 rounded w-50 mb-3" style={{ height: '20px' }}></div>
+                 <div className="bg-secondary opacity-25 rounded w-100 mb-2" style={{ height: '15px' }}></div>
+                 <div className="bg-secondary opacity-25 rounded w-75" style={{ height: '15px' }}></div>
+              </div>
+            </motion.div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (error) return <div className="alert alert-danger" role="alert">{error}</div>;
   
   if (filteredItems.length === 0) {
