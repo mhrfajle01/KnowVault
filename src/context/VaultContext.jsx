@@ -230,46 +230,42 @@ export const VaultProvider = ({ children }) => {
   // Derived Data
   const allTags = Array.from(new Set(state.items.flatMap(item => item.tags))).sort();
 
-  // Fuzzy Search Setup
-  const fuse = new Fuse(state.items, {
-    keys: ['title', 'content', 'tags'],
-    threshold: 0.3,
-    ignoreLocation: true
+  // 1. Initial filter based on main view (Active, Archive, Trash)
+  let baseItems = state.items.filter(item => {
+    if (state.filters.showTrashed) return item.trashed;
+    if (state.filters.showArchived) return item.archived && !item.trashed;
+    return !item.archived && !item.trashed;
   });
 
-  let processedItems = [...state.items];
-
-  // Apply Search if search string exists
+  // 2. Apply Search if search string exists
+  let searchedItems = baseItems;
   if (state.filters.search) {
     const query = state.filters.search.trim();
     if (query.startsWith('"') && query.endsWith('"') && query.length > 2) {
       // Exact match
       const exactTerm = query.slice(1, -1).toLowerCase();
-      processedItems = state.items.filter(item => 
+      searchedItems = baseItems.filter(item => 
         item.title.toLowerCase().includes(exactTerm) || 
         item.content.toLowerCase().includes(exactTerm) ||
         item.tags.some(t => t.toLowerCase().includes(exactTerm))
       );
     } else {
-      // Fuzzy match
-      processedItems = fuse.search(state.filters.search).map(result => result.item);
+      // Fuzzy match using the already filtered baseItems
+      const searchFuse = new Fuse(baseItems, {
+        keys: ['title', 'content', 'tags'],
+        threshold: 0.3,
+        ignoreLocation: true
+      });
+      searchedItems = searchFuse.search(state.filters.search).map(result => result.item);
     }
   }
 
-  const filteredItems = processedItems
+  // 3. Apply Tag and Type filters
+  const filteredItems = searchedItems
     .filter(item => {
       const matchesTag = !state.filters.tag || item.tags.includes(state.filters.tag);
       const matchesType = state.filters.type === 'all' || item.type === state.filters.type;
-      
-      if (state.filters.showTrashed) {
-          return item.trashed && matchesTag && matchesType;
-      }
-
-      if (state.filters.showArchived) {
-          return item.archived && !item.trashed && matchesTag && matchesType;
-      }
-
-      return !item.archived && !item.trashed && matchesTag && matchesType;
+      return matchesTag && matchesType;
     })
     .sort((a, b) => {
       // Always put pinned items first
