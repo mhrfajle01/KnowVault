@@ -97,7 +97,7 @@ mark {
 
 .nav-pills .nav-link.active {
     background: transparent;
-    color: white;
+    color: var(--bs-primary); /* Change text color since pill is transparent */
 }
 
 .nav-pill-background {
@@ -105,7 +105,8 @@ mark {
     top: 4px;
     bottom: 4px;
     left: 4px;
-    background: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.2); /* Transparent blue */
+    border: 1px solid var(--bs-primary); /* Outline for visibility */
     border-radius: 50px;
     z-index: 0;
 }
