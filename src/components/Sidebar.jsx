@@ -94,10 +94,15 @@ const Sidebar = () => {
             className="mb-4"
           >
               <button className="btn btn-sm btn-outline-danger w-100 rounded-3 py-2 fw-bold" onClick={() => {
-                  if (window.confirm("Permanently empty all items in trash?")) {
+                  showModal({
+                    title: 'Empty Trash?',
+                    message: 'Are you sure you want to permanently delete ALL items in the trash? This action cannot be undone.',
+                    type: 'danger',
+                    onConfirm: () => {
                       playAiSound('delete');
                       emptyTrash();
-                  }
+                    }
+                  });
               }}>Empty Trash 🔥</button>
           </motion.div>
       )}

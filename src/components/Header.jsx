@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
+import { useUI } from '../context/UIContext';
 import { dbUtils } from '../utils/db';
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
   const { state, addItem } = useVault();
   const { playAiSound } = useAI();
+  const { showModal } = useUI();
   const fileInputRef = useRef(null);
 
   const handleExport = () => {
@@ -22,6 +24,12 @@ const Header = () => {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+
+    showModal({
+      title: 'Export Successful',
+      message: `Your vault data has been exported to ${exportFileDefaultName}`,
+      type: 'confirm'
+    });
   };
 
   const handleImportClick = () => {
@@ -54,13 +62,25 @@ const Header = () => {
                       }
                   }
                   playAiSound('success');
-                  alert(`Successfully imported ${count} items.`);
+                  showModal({
+                    title: 'Import Successful',
+                    message: `Successfully imported ${count} items into your vault.`,
+                    type: 'confirm'
+                  });
               } else {
-                  alert('Invalid backup file format.');
+                  showModal({
+                    title: 'Import Failed',
+                    message: 'Invalid backup file format. Expected a JSON array.',
+                    type: 'danger'
+                  });
               }
           } catch (err) {
               console.error(err);
-              alert('Failed to parse JSON file.');
+              showModal({
+                title: 'Import Error',
+                message: 'Failed to parse JSON file. Please ensure it is a valid backup.',
+                type: 'danger'
+              });
           }
       };
       reader.readAsText(file);

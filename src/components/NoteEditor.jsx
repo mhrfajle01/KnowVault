@@ -5,10 +5,12 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css'; // Light theme for code
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
+import { useUI } from '../context/UIContext';
 
 const NoteEditor = () => {
   const { state, addItem, updateItem, setEditingItem, allTags, setFilters } = useVault();
   const { enhanceText, playAiSound } = useAI();
+  const { showModal } = useUI();
   const { editingItem } = state;
 
   const initialFormState = {
@@ -108,6 +110,11 @@ const NoteEditor = () => {
     if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
     handleSave(formData).then(() => {
          if (!editingItem) {
+             showModal({
+                title: 'Item Created',
+                message: `"${formData.title}" has been successfully added to your vault.`,
+                type: 'confirm'
+             });
              setFormData(initialFormState);
              isFirstLoad.current = true;
          }
@@ -161,7 +168,11 @@ const NoteEditor = () => {
         const formatted = JSON.stringify(obj, null, 2);
         setFormData(prev => ({ ...prev, content: formatted, type: 'code', language: 'json' }));
     } catch (e) {
-        alert("Invalid JSON: " + e.message);
+        showModal({
+            title: 'Invalid JSON',
+            message: e.message,
+            type: 'danger'
+        });
     }
   };
 
@@ -185,7 +196,11 @@ const NoteEditor = () => {
         setFormData(prev => ({ ...prev, content: enhanced }));
         playAiSound('success');
     } catch (e) {
-        alert(e.message);
+        showModal({
+            title: 'Enhancement Error',
+            message: e.message,
+            type: 'danger'
+        });
     } finally {
         setIsEnhancing(false);
         setEnhanceStage('');

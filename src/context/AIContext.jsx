@@ -18,8 +18,8 @@ export const AIProvider = ({ children }) => {
   const { toggleTheme } = useTheme();
   const { showModal } = useUI();
 
-  const [apiKey, setApiKey] = useState('');
-  const [provider, setProvider] = useState('gemini'); // gemini, deepseek, or local
+  const [apiKey, setApiKey] = useState('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');
+  const [provider, setProvider] = useState('deepseek'); // gemini, deepseek, or local
   const [chatHistory, setChatHistory] = useState([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -482,15 +482,17 @@ export const AIProvider = ({ children }) => {
         responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
       } else {
-        // DeepSeek / OpenAI Compatible
-        const response = await fetch('https://api.deepseek.com/chat/completions', {
+        // DeepSeek via OpenRouter
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${cleanKey}`
+            'Authorization': `Bearer ${cleanKey}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'KnowVault'
           },
           body: JSON.stringify({
-            model: "deepseek-chat",
+            model: "deepseek/deepseek-chat",
             messages: [{ role: "user", content: fullPrompt }],
             stream: false
           })
@@ -612,6 +614,8 @@ export const AIProvider = ({ children }) => {
     Fix grammar, add headings, bullet points, and bold important terms where appropriate. 
     Maintain all the original information but make it highly readable and professional.
     
+    CRITICAL: Return ONLY the enhanced content. Do not include any explanations, introductions, or conversational filler.
+    
     TEXT TO ENHANCE:
     ${text}`;
 
@@ -626,14 +630,16 @@ export const AIProvider = ({ children }) => {
             const data = await response.json();
             enhanced = data.candidates?.[0]?.content?.parts?.[0]?.text;
         } else {
-            const response = await fetch('https://api.deepseek.com/chat/completions', {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${cleanKey}`
+                    'Authorization': `Bearer ${cleanKey}`,
+                    'HTTP-Referer': window.location.origin,
+                    'X-Title': 'KnowVault'
                 },
                 body: JSON.stringify({
-                    model: "deepseek-chat",
+                    model: "deepseek/deepseek-chat",
                     messages: [{ role: "user", content: prompt }],
                     stream: false
                 })

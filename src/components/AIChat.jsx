@@ -151,7 +151,7 @@ const AIChat = () => {
                               onChange={(e) => setTempProvider(e.target.value)}
                           >
                               <option value="gemini">Google Gemini</option>
-                              <option value="deepseek">DeepSeek (OpenAI Compatible)</option>
+                              <option value="deepseek">DeepSeek (via OpenRouter)</option>
                               <option value="local">Local (Q&A)</option>
                           </select>
                       </div>

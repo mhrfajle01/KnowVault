@@ -138,7 +138,11 @@ const NoteCard = ({ item, onEdit }) => {
     const text = `${item.title}\n\n${item.content}`;
     navigator.clipboard.writeText(text);
     playAiSound('success');
-    alert('Copied to clipboard! 📋');
+    showModal({
+      title: 'Copied!',
+      message: 'The note content has been copied to your clipboard.',
+      type: 'confirm'
+    });
   };
 
   const backlinks = vaultState.items.filter(i => {
