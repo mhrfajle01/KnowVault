@@ -1,15 +1,25 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
 import { useUI } from '../context/UIContext';
-import { slideIn, skeleton } from '../utils/animations';
+import { slideIn, skeleton, accordion } from '../utils/animations';
 
 const Sidebar = () => {
   const { state, setFilters, allTags, emptyTrash, factoryReset, triggerScroll } = useVault();
   const { playAiSound } = useAI();
   const { showModal } = useUI();
   const { filters, items, loading } = state;
+
+  const [openSections, setOpenSections] = useState({
+    view: true,
+    type: true,
+    tags: true
+  });
+
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const counts = useMemo(() => {
     return {
@@ -51,58 +61,74 @@ const Sidebar = () => {
       className="card shadow-sm border-0 p-3 mb-4 rounded-4 bg-body"
     >
       <div className="mb-4">
-        <h6 className="text-uppercase text-muted small fw-bold mb-3 d-flex align-items-center">
-            <span className="me-2">🔭</span> View
+        <h6 
+            className="text-uppercase text-muted small fw-bold mb-3 d-flex align-items-center cursor-pointer justify-content-between"
+            onClick={() => toggleSection('view')}
+        >
+            <div className="d-flex align-items-center">
+                <span className="me-2">🔭</span> View
+            </div>
+            <motion.span animate={{ rotate: openSections.view ? 0 : -90 }}>▾</motion.span>
         </h6>
-        <div className="d-flex flex-column gap-1">
-            <motion.button
-                whileTap={{ scale: 0.98 }}
-                className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${isActiveView ? 'btn-primary shadow-sm' : 'btn-light'}`}
-                onClick={() => handleFilterChange({ showArchived: false, showTrashed: false })}
-            >
-                <div className="d-flex align-items-center">
-                    <span className="me-2">{isActiveView ? '📥' : '📥'}</span>
-                    <span>Active Vault</span>
-                </div>
-                {loading ? (
-                    <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
-                ) : (
-                    <span className={`badge rounded-pill ${isActiveView ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts.active}</span>
-                )}
-            </motion.button>
+        <AnimatePresence>
+            {openSections.view && (
+                <motion.div 
+                    variants={accordion}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="d-flex flex-column gap-1"
+                >
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${isActiveView ? 'btn-primary shadow-sm' : 'btn-light'}`}
+                        onClick={() => handleFilterChange({ showArchived: false, showTrashed: false })}
+                    >
+                        <div className="d-flex align-items-center">
+                            <span className="me-2">{isActiveView ? '📥' : '📥'}</span>
+                            <span>Active Vault</span>
+                        </div>
+                        {loading ? (
+                            <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
+                        ) : (
+                            <span className={`badge rounded-pill ${isActiveView ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts.active}</span>
+                        )}
+                    </motion.button>
 
-            <motion.button
-                whileTap={{ scale: 0.98 }}
-                className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.showArchived ? 'btn-primary shadow-sm' : 'btn-light'}`}
-                onClick={() => handleFilterChange({ showArchived: true, showTrashed: false })}
-            >
-                <div className="d-flex align-items-center">
-                    <span className="me-2">📁</span>
-                    <span>Archive</span>
-                </div>
-                {loading ? (
-                    <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
-                ) : (
-                    <span className={`badge rounded-pill ${filters.showArchived ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts.archived}</span>
-                )}
-            </motion.button>
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.showArchived ? 'btn-primary shadow-sm' : 'btn-light'}`}
+                        onClick={() => handleFilterChange({ showArchived: true, showTrashed: false })}
+                    >
+                        <div className="d-flex align-items-center">
+                            <span className="me-2">📁</span>
+                            <span>Archive</span>
+                        </div>
+                        {loading ? (
+                            <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
+                        ) : (
+                            <span className={`badge rounded-pill ${filters.showArchived ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts.archived}</span>
+                        )}
+                    </motion.button>
 
-            <motion.button
-                whileTap={{ scale: 0.98 }}
-                className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.showTrashed ? 'btn-danger text-white shadow-sm' : 'btn-light'}`}
-                onClick={() => handleFilterChange({ showTrashed: true, showArchived: false })}
-            >
-                <div className="d-flex align-items-center">
-                    <span className="me-2">🗑️</span>
-                    <span>Trash</span>
-                </div>
-                {loading ? (
-                    <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
-                ) : (
-                    <span className={`badge rounded-pill ${filters.showTrashed ? 'bg-white text-danger' : 'bg-secondary-subtle text-muted'}`}>{counts.trashed}</span>
-                )}
-            </motion.button>
-        </div>
+                    <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.showTrashed ? 'btn-danger text-white shadow-sm' : 'btn-light'}`}
+                        onClick={() => handleFilterChange({ showTrashed: true, showArchived: false })}
+                    >
+                        <div className="d-flex align-items-center">
+                            <span className="me-2">🗑️</span>
+                            <span>Trash</span>
+                        </div>
+                        {loading ? (
+                            <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
+                        ) : (
+                            <span className={`badge rounded-pill ${filters.showTrashed ? 'bg-white text-danger' : 'bg-secondary-subtle text-muted'}`}>{counts.trashed}</span>
+                        )}
+                    </motion.button>
+                </motion.div>
+            )}
+        </AnimatePresence>
       </div>
 
       {filters.showTrashed && counts.trashed > 0 && (
@@ -126,68 +152,100 @@ const Sidebar = () => {
       )}
 
       <div className="mb-4">
-        <h6 className="text-uppercase text-muted small fw-bold mb-3 d-flex align-items-center">
-            <span className="me-2">🏷️</span> Content Type
+        <h6 
+            className="text-uppercase text-muted small fw-bold mb-3 d-flex align-items-center cursor-pointer justify-content-between"
+            onClick={() => toggleSection('type')}
+        >
+            <div className="d-flex align-items-center">
+                <span className="me-2">🏷️</span> Content Type
+            </div>
+            <motion.span animate={{ rotate: openSections.type ? 0 : -90 }}>▾</motion.span>
         </h6>
-        <div className="d-flex flex-column gap-1">
-            {[
-                { id: 'all', label: 'All Items', icon: '🌈' },
-                { id: 'note', label: 'Notes', icon: '📝' },
-                { id: 'link', label: 'Links', icon: '🔗' },
-                { id: 'code', label: 'Snippets', icon: '💻' }
-            ].map(type => (
-                <motion.button
-                    key={type.id}
-                    whileTap={{ scale: 0.98 }}
-                    className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.type === type.id ? 'btn-primary shadow-sm' : 'btn-light'}`}
-                    onClick={() => handleFilterChange({ type: type.id })}
+        <AnimatePresence>
+            {openSections.type && (
+                <motion.div 
+                    variants={accordion}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="d-flex flex-column gap-1"
                 >
-                    <div className="d-flex align-items-center">
-                        <span className="me-2">{type.icon}</span>
-                        <span>{type.label}</span>
-                    </div>
-                    <span className={`badge rounded-pill ${filters.type === type.id ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts[type.id]}</span>
-                </motion.button>
-            ))}
-        </div>
+                    {[
+                        { id: 'all', label: 'All Items', icon: '🌈' },
+                        { id: 'note', label: 'Notes', icon: '📝' },
+                        { id: 'link', label: 'Links', icon: '🔗' },
+                        { id: 'code', label: 'Snippets', icon: '💻' }
+                    ].map(type => (
+                        <motion.button
+                            key={type.id}
+                            whileTap={{ scale: 0.98 }}
+                            className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.type === type.id ? 'btn-primary shadow-sm' : 'btn-light'}`}
+                            onClick={() => handleFilterChange({ type: type.id })}
+                        >
+                            <div className="d-flex align-items-center">
+                                <span className="me-2">{type.icon}</span>
+                                <span>{type.label}</span>
+                            </div>
+                            <span className={`badge rounded-pill ${filters.type === type.id ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts[type.id]}</span>
+                        </motion.button>
+                    ))}
+                </motion.div>
+            )}
+        </AnimatePresence>
       </div>
 
       <div className="mb-4">
-        <h6 className="text-uppercase text-muted small fw-bold mb-3 d-flex align-items-center">
-            <span className="me-2">#️⃣</span> Tags
+        <h6 
+            className="text-uppercase text-muted small fw-bold mb-3 d-flex align-items-center cursor-pointer justify-content-between"
+            onClick={() => toggleSection('tags')}
+        >
+            <div className="d-flex align-items-center">
+                <span className="me-2">#️⃣</span> Tags
+            </div>
+            <motion.span animate={{ rotate: openSections.tags ? 0 : -90 }}>▾</motion.span>
         </h6>
-        <div className="d-flex flex-wrap gap-2">
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`btn btn-sm rounded-pill px-3 ${!filters.tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
-                onClick={() => handleFilterChange({ tag: null })}
-            >
-                All Tags
-            </motion.button>
-            {loading ? (
-                <>
-                    <motion.span variants={skeleton} initial="initial" animate="animate" className="btn btn-sm rounded-pill px-4 bg-secondary-subtle" style={{ width: '60px', height: '30px' }}></motion.span>
-                    <motion.span variants={skeleton} initial="initial" animate="animate" className="btn btn-sm rounded-pill px-4 bg-secondary-subtle" style={{ width: '80px', height: '30px' }}></motion.span>
-                </>
-            ) : (
-                allTags.map((tag, i) => (
+        <AnimatePresence>
+            {openSections.tags && (
+                <motion.div 
+                    variants={accordion}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="d-flex flex-wrap gap-2"
+                >
                     <motion.button
-                        key={tag}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: i * 0.03 }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className={`btn btn-sm rounded-pill px-3 ${filters.tag === tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
-                        onClick={() => handleFilterChange({ tag })}
+                        className={`btn btn-sm rounded-pill px-3 ${!filters.tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
+                        onClick={() => handleFilterChange({ tag: null })}
                     >
-                        #{tag}
+                        All Tags
                     </motion.button>
-                ))
+                    {loading ? (
+                        <>
+                            <motion.span variants={skeleton} initial="initial" animate="animate" className="btn btn-sm rounded-pill px-4 bg-secondary-subtle" style={{ width: '60px', height: '30px' }}></motion.span>
+                            <motion.span variants={skeleton} initial="initial" animate="animate" className="btn btn-sm rounded-pill px-4 bg-secondary-subtle" style={{ width: '80px', height: '30px' }}></motion.span>
+                        </>
+                    ) : (
+                        allTags.map((tag, i) => (
+                            <motion.button
+                                key={tag}
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: i * 0.03 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`btn btn-sm rounded-pill px-3 ${filters.tag === tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
+                                onClick={() => handleFilterChange({ tag })}
+                            >
+                                #{tag}
+                            </motion.button>
+                        ))
+                    )}
+                    {!loading && allTags.length === 0 && <p className="text-muted small italic ms-1">No tags yet.</p>}
+                </motion.div>
             )}
-            {!loading && allTags.length === 0 && <p className="text-muted small italic ms-1">No tags yet.</p>}
-        </div>
+        </AnimatePresence>
       </div>
 
       <div className="mt-4 pt-3 border-top">

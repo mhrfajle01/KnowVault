@@ -137,3 +137,21 @@ export const rotate = {
     }
   }
 };
+
+export const glow = {
+  initial: { boxShadow: "0 0 0px rgba(var(--bs-primary-rgb), 0)" },
+  animate: {
+    boxShadow: [
+      "0 0 0px rgba(var(--bs-primary-rgb), 0)",
+      "0 0 20px rgba(var(--bs-primary-rgb), 0.6)",
+      "0 0 0px rgba(var(--bs-primary-rgb), 0)"
+    ],
+    transition: { duration: 0.8 }
+  }
+};
+
+export const accordion = {
+  initial: { height: 0, opacity: 0, overflow: 'hidden' },
+  animate: { height: 'auto', opacity: 1, transition: { duration: 0.3, ease: "easeInOut" } },
+  exit: { height: 0, opacity: 0, transition: { duration: 0.3, ease: "easeInOut" } }
+};

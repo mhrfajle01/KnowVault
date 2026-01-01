@@ -6,13 +6,24 @@ import 'highlight.js/styles/github.css';
 import { useVault } from '../context/VaultContext';
 import { useUI } from '../context/UIContext';
 import { useAI } from '../context/AIContext';
-import { hoverScale, pulse } from '../utils/animations';
+import { hoverScale, pulse, glow } from '../utils/animations';
 
 const NoteCard = ({ item, onEdit }) => {
   const { deleteItem, setEditingItem, togglePin, toggleArchive, state: vaultState, moveToTrash, restoreFromTrash, setFilters } = useVault();
   const { showModal } = useUI();
   const { playAiSound } = useAI();
   const { filters } = vaultState;
+  const [isGlowing, setIsGlowing] = React.useState(false);
+
+  // Trigger glow on update
+  React.useEffect(() => {
+    // We skip the initial mount glow by checking if updatedAt and createdAt are different
+    // or just trigger it every time updatedAt changes after mount.
+    // To be simple, let's trigger it when updatedAt changes.
+    setIsGlowing(true);
+    const timer = setTimeout(() => setIsGlowing(false), 800);
+    return () => clearTimeout(timer);
+  }, [item.updatedAt]);
 
   const handleEdit = () => {
     setEditingItem(item);
@@ -194,6 +205,8 @@ const NoteCard = ({ item, onEdit }) => {
   return (
     <motion.div 
       {...hoverScale}
+      variants={glow}
+      animate={isGlowing ? "animate" : "initial"}
       className={`card h-100 shadow-sm ${item.pinned ? 'border-primary border-2' : ''} ${matchCount > 0 ? 'border-warning' : ''}`}
     >
       <div className="card-body p-3">
