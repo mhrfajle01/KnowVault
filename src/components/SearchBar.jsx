@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 
 const SearchBar = () => {
-  const { state, setFilters, setSort, filteredItems } = useVault();
+  const { state, setFilters, setSort, triggerScroll, filteredItems } = useVault();
   const { filters, sortBy } = state;
   const [isSearching, setIsSearching] = useState(false);
   const [hasResults, setHasResults] = useState(false);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      triggerScroll('match');
+    }
+  };
 
   useEffect(() => {
     if (filters.search) {
@@ -21,18 +28,35 @@ const SearchBar = () => {
   return (
     <div className="search-section">
       <div className="d-flex align-items-center gap-2 mb-3">
-          <span className={`fs-4 ${hasResults ? 'animate-bounce' : ''}`}>🔍</span>
+          <motion.span 
+            animate={hasResults ? { scale: [1, 1.2, 1] } : {}}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="fs-4"
+          >
+            🔍
+          </motion.span>
           <h5 className="mb-0 fw-bold">Search & Filter</h5>
-          {filters.search && (
-              <span className={`badge rounded-pill ms-2 ${hasResults ? 'bg-success' : 'bg-danger'} transition-all`}>
-                {filteredItems.length} {filteredItems.length === 1 ? 'result' : 'results'}
-              </span>
-          )}
+          <AnimatePresence>
+            {filters.search && (
+                <motion.span 
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  className={`badge rounded-pill ms-2 ${hasResults ? 'bg-success' : 'bg-danger'} shadow-sm`}
+                >
+                  {filteredItems.length} {filteredItems.length === 1 ? 'result' : 'results'}
+                </motion.span>
+            )}
+          </AnimatePresence>
           <small className="text-muted ms-auto d-none d-sm-inline">Searching across titles, tags, and content...</small>
       </div>
       <div className="row g-3 align-items-center">
         <div className="col-lg-8 col-md-7">
-          <div className={`input-group shadow-sm rounded-pill overflow-hidden transition-all ${isSearching ? 'ring-primary' : ''}`} style={{ border: '2px solid transparent', background: 'var(--bs-tertiary-bg)' }}>
+          <motion.div 
+            animate={isSearching ? { scale: 1.01 } : { scale: 1 }}
+            className={`input-group shadow-sm rounded-pill overflow-hidden transition-all ${isSearching ? 'ring-primary' : ''}`} 
+            style={{ border: '2px solid transparent', background: 'var(--bs-tertiary-bg)' }}
+          >
             <span className={`input-group-text bg-transparent border-0 ps-3 ${isSearching ? 'animate-pulse text-primary' : ''}`}>
               {isSearching ? '⏳' : '🔍'}
             </span>
@@ -42,16 +66,22 @@ const SearchBar = () => {
               placeholder="Deep search your vault..."
               value={filters.search}
               onChange={(e) => setFilters({ search: e.target.value })}
+              onKeyDown={handleKeyDown}
             />
-            {filters.search && (
-                <button 
-                  className="btn border-0 bg-transparent text-muted px-3" 
-                  onClick={() => setFilters({ search: '' })}
-                >
-                    ✕
-                </button>
-            )}
-          </div>
+            <AnimatePresence>
+                {filters.search && (
+                    <motion.button 
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      className="btn border-0 bg-transparent text-muted px-3" 
+                      onClick={() => setFilters({ search: '' })}
+                    >
+                        ✕
+                    </motion.button>
+                )}
+            </AnimatePresence>
+          </motion.div>
         </div>
         <div className="col-lg-4 col-md-5">
           <div className="d-flex gap-2">
@@ -73,3 +103,4 @@ const SearchBar = () => {
 };
 
 export default SearchBar;
+

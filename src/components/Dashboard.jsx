@@ -1,8 +1,11 @@
 import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
+import { useAI } from '../context/AIContext';
 
-const Dashboard = () => {
-  const { state, allTags } = useVault();
+const Dashboard = ({ onViewChange }) => {
+  const { state, allTags, setFilters, triggerScroll } = useVault();
+  const { playAiSound } = useAI();
   const { items } = state;
 
   const stats = useMemo(() => {
@@ -40,25 +43,63 @@ const Dashboard = () => {
     return { typeCount, topTags, recent, insights, tagUsage };
   }, [items]);
 
+  const navigateToVault = (filters) => {
+    playAiSound('info');
+    setFilters({ ...filters, showArchived: false, showTrashed: false });
+    onViewChange('vault');
+    triggerScroll('top');
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="container pb-5">
-      <h3 className="mb-4 d-flex align-items-center gap-2 fw-bold text-gradient">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="container pb-5"
+    >
+      <motion.h3 variants={itemVariants} className="mb-4 d-flex align-items-center gap-2 fw-bold text-gradient">
         <span>📊</span> Dashboard
-      </h3>
+      </motion.h3>
       
       <div className="row g-4 mb-4">
         {/* Total Items Card */}
-        <div className="col-12 col-md-4">
-          <div className="card h-100 shadow-sm border-0 bg-gradient-primary text-white">
+        <motion.div variants={itemVariants} className="col-12 col-md-4">
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="card h-100 shadow-sm border-0 bg-gradient-primary text-white cursor-pointer"
+            onClick={() => navigateToVault({ type: 'all', tag: null, search: '' })}
+          >
             <div className="card-body text-center d-flex flex-column justify-content-center p-4">
-              <h1 className="display-4 display-md-3 fw-bold mb-0 drop-shadow">{items.length}</h1>
+              <motion.h1 
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                className="display-4 display-md-3 fw-bold mb-0 drop-shadow"
+              >
+                {items.length}
+              </motion.h1>
               <p className="lead fw-bold opacity-75">Total Items</p>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Distribution Card */}
-        <div className="col-12 col-md-8">
+        <motion.div variants={itemVariants} className="col-12 col-md-8">
            <div className="card h-100 shadow-sm border-0">
              <div className="card-header fw-bold text-white border-0 py-3" style={{ background: 'linear-gradient(45deg, #a18cd1 0%, #fbc2eb 100%)' }}>
                 Distribution by Type
@@ -66,61 +107,88 @@ const Dashboard = () => {
              <div className="card-body p-4">
                 <div className="row g-3 text-center align-items-center h-100">
                     <div className="col-4 col-md-4">
-                        <div className="p-2 rounded hover-scale transition-all">
+                        <motion.div 
+                            whileHover={{ scale: 1.1, backgroundColor: 'var(--bs-tertiary-bg)' }} 
+                            whileTap={{ scale: 0.95 }}
+                            className="p-2 rounded transition-all cursor-pointer"
+                            onClick={() => navigateToVault({ type: 'note' })}
+                        >
                             <h2 className="mb-1 fw-bold">📝 {stats.typeCount.note}</h2>
                             <small className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Notes</small>
-                        </div>
+                        </motion.div>
                     </div>
                     <div className="col-4 col-md-4 border-start border-end border-secondary-subtle">
-                         <div className="p-2 hover-scale transition-all">
+                         <motion.div 
+                            whileHover={{ scale: 1.1, backgroundColor: 'var(--bs-tertiary-bg)' }} 
+                            whileTap={{ scale: 0.95 }}
+                            className="p-2 transition-all cursor-pointer"
+                            onClick={() => navigateToVault({ type: 'link' })}
+                         >
                             <h2 className="mb-1 fw-bold">🔗 {stats.typeCount.link}</h2>
                             <small className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Links</small>
-                         </div>
+                         </motion.div>
                     </div>
                     <div className="col-4 col-md-4">
-                         <div className="p-2 rounded hover-scale transition-all">
+                         <motion.div 
+                            whileHover={{ scale: 1.1, backgroundColor: 'var(--bs-tertiary-bg)' }} 
+                            whileTap={{ scale: 0.95 }}
+                            className="p-2 rounded transition-all cursor-pointer"
+                            onClick={() => navigateToVault({ type: 'code' })}
+                         >
                             <h2 className="mb-1 fw-bold">💻 {stats.typeCount.code}</h2>
                             <small className="text-muted text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Snippets</small>
-                         </div>
+                         </motion.div>
                     </div>
                 </div>
              </div>
            </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* AI Insights */}
-      <div className="card mb-4 shadow-sm border-0 overflow-hidden">
+      <motion.div variants={itemVariants} className="card mb-4 shadow-sm border-0 overflow-hidden">
         <div className="card-header fw-bold text-white border-0 py-3" style={{ background: 'linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)' }}>
             ✨ AI Insights
         </div>
         <div className="card-body bg-body-tertiary">
             {stats.insights.map((insight, i) => (
-                <div key={i} className="d-flex align-items-start align-items-sm-center gap-3 p-3 mb-2 bg-body rounded shadow-sm border-start border-4 border-info">
+                <motion.div 
+                  key={i} 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + (i * 0.1) }}
+                  className="d-flex align-items-start align-items-sm-center gap-3 p-3 mb-2 bg-body rounded shadow-sm border-start border-4 border-info"
+                >
                     <span className="fs-4 flex-shrink-0">💡</span>
                     <span className="fst-italic small-md">{insight}</span>
-                </div>
+                </motion.div>
             ))}
         </div>
-      </div>
+      </motion.div>
 
       <div className="row g-4">
         {/* Top Tags */}
-        <div className="col-12 col-md-6">
+        <motion.div variants={itemVariants} className="col-12 col-md-6">
            <div className="card h-100 shadow-sm border-0">
              <div className="card-header fw-bold text-white border-0 py-3" style={{ background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' }}>
                 Top Tags
              </div>
              <div className="card-body">
                 <div className="d-flex flex-wrap gap-2 mb-4 p-2 bg-body-tertiary rounded">
-                    {Object.entries(stats.tagUsage).map(([tag, count]) => (
-                        <span 
+                    {Object.entries(stats.tagUsage).map(([tag, count], i) => (
+                        <motion.span 
                             key={tag} 
-                            className="badge bg-body text-body rounded-pill border shadow-sm"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.8 + (i * 0.05) }}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="badge bg-body text-body rounded-pill border shadow-sm cursor-pointer"
                             style={{ fontSize: `${Math.min(0.8 + (count * 0.1), 1.2)}rem`, padding: '0.5em 0.8em' }}
+                            onClick={() => navigateToVault({ tag: tag })}
                         >
                             #{tag} <span className="opacity-50 ms-1">({count})</span>
-                        </span>
+                        </motion.span>
                     ))}
                     {allTags.length === 0 && <p className="text-muted small m-0 p-2">No tags used yet. Add tags to organize your vault!</p>}
                 </div>
@@ -130,30 +198,47 @@ const Dashboard = () => {
                         <h6 className="text-muted text-uppercase text-xs fw-bold mb-3">Most Used</h6>
                         <ul className="list-group list-group-flush">
                             {stats.topTags.map(([tag, count], idx) => (
-                                <li key={tag} className="list-group-item d-flex justify-content-between align-items-center px-0 border-bottom-dashed">
+                                <motion.li 
+                                  key={tag} 
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ delay: 1 + (idx * 0.1) }}
+                                  whileHover={{ backgroundColor: 'var(--bs-tertiary-bg)', paddingLeft: '8px' }}
+                                  className="list-group-item d-flex justify-content-between align-items-center px-0 border-bottom-dashed cursor-pointer rounded-2"
+                                  onClick={() => navigateToVault({ tag: tag })}
+                                >
                                 <div className="d-flex align-items-center gap-2">
                                     <span className="badge bg-primary rounded-circle" style={{width: '24px', height: '24px', display:'flex', alignItems:'center', justifyContent:'center', fontSize: '0.8rem'}}>{idx + 1}</span>
                                     <span className="fw-medium text-truncate" style={{ maxWidth: '150px' }}>#{tag}</span>
                                 </div>
                                 <span className="badge bg-secondary-subtle text-body border rounded-pill">{count}</span>
-                                </li>
+                                </motion.li>
                             ))}
                         </ul>
                     </>
                 )}
              </div>
            </div>
-        </div>
+        </motion.div>
 
         {/* Recent Activity */}
-        <div className="col-12 col-md-6">
+        <motion.div variants={itemVariants} className="col-12 col-md-6">
            <div className="card h-100 shadow-sm border-0">
              <div className="card-header fw-bold text-white border-0 py-3" style={{ background: 'linear-gradient(to right, #43e97b 0%, #38f9d7 100%)' }}>
                 Recently Updated
              </div>
              <div className="list-group list-group-flush">
-                {stats.recent.map(item => (
-                    <div key={item.id} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom-dashed px-2 px-sm-3">
+                {stats.recent.map((item, i) => (
+                    <motion.div 
+                      key={item.id} 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.2 + (i * 0.1) }}
+                      whileHover={{ backgroundColor: 'var(--bs-tertiary-bg)', scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      className="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom-dashed px-2 px-sm-3 cursor-pointer"
+                      onClick={() => navigateToVault({ search: `"${item.title}"` })}
+                    >
                         <div className="d-flex align-items-center gap-2 gap-sm-3 overflow-hidden" style={{ minWidth: 0 }}>
                             <span className="fs-5 flex-shrink-0">{item.type === 'link' ? '🔗' : (item.type === 'code' ? '💻' : '📝')}</span>
                             <div className="d-flex flex-column text-truncate" style={{ minWidth: 0 }}>
@@ -166,7 +251,7 @@ const Dashboard = () => {
                         <small className="text-muted text-nowrap ms-2 bg-body-tertiary px-2 py-1 rounded flex-shrink-0" style={{ fontSize: '0.75rem' }}>
                             {new Date(item.updatedAt).toLocaleDateString()}
                         </small>
-                    </div>
+                    </motion.div>
                 ))}
                 {stats.recent.length === 0 && (
                     <div className="text-center py-5 text-muted">
@@ -175,9 +260,9 @@ const Dashboard = () => {
                 )}
              </div>
            </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

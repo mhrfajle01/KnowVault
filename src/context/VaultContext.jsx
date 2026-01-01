@@ -16,7 +16,11 @@ const initialState = {
     showArchived: false,
     showTrashed: false
   },
-  sortBy: 'newest' // newest, oldest, updated
+  sortBy: 'newest', // newest, oldest, updated
+  scrollTrigger: {
+    timestamp: 0,
+    type: 'match' // 'match' or 'top'
+  }
 };
 
 const vaultReducer = (state, action) => {
@@ -43,6 +47,8 @@ const vaultReducer = (state, action) => {
       return { ...state, error: action.payload, loading: false };
     case 'SET_EDITING_ITEM':
       return { ...state, editingItem: action.payload };
+    case 'TRIGGER_SCROLL':
+      return { ...state, scrollTrigger: { timestamp: Date.now(), type: action.payload || 'match' } };
     case 'TOGGLE_PIN':
       return {
         ...state,
@@ -215,6 +221,10 @@ export const VaultProvider = ({ children }) => {
     dispatch({ type: 'SET_SORT', payload: sort });
   };
 
+  const triggerScroll = (type = 'match') => {
+    dispatch({ type: 'TRIGGER_SCROLL', payload: type });
+  };
+
   // Derived Data
   const allTags = Array.from(new Set(state.items.flatMap(item => item.tags))).sort();
 
@@ -227,9 +237,21 @@ export const VaultProvider = ({ children }) => {
 
   let processedItems = [...state.items];
 
-  // Apply Fuzzy Search if search string exists
+  // Apply Search if search string exists
   if (state.filters.search) {
-    processedItems = fuse.search(state.filters.search).map(result => result.item);
+    const query = state.filters.search.trim();
+    if (query.startsWith('"') && query.endsWith('"') && query.length > 2) {
+      // Exact match
+      const exactTerm = query.slice(1, -1).toLowerCase();
+      processedItems = state.items.filter(item => 
+        item.title.toLowerCase().includes(exactTerm) || 
+        item.content.toLowerCase().includes(exactTerm) ||
+        item.tags.some(t => t.toLowerCase().includes(exactTerm))
+      );
+    } else {
+      // Fuzzy match
+      processedItems = fuse.search(state.filters.search).map(result => result.item);
+    }
   }
 
   const filteredItems = processedItems
@@ -274,6 +296,7 @@ export const VaultProvider = ({ children }) => {
       setEditingItem,
       setFilters,
       setSort,
+      triggerScroll,
       filteredItems,
       allTags
     }}>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
@@ -31,11 +32,13 @@ const NoteCard = ({ item, onEdit }) => {
 
   const highlightText = (text, query) => {
     if (!query) return text;
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    const cleanQuery = query.replace(/^"(.*)"$/, '$1');
+    const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
     return (
       <span>
         {parts.map((part, i) => 
-          part.toLowerCase() === query.toLowerCase() ? <mark key={i} className="p-0 bg-warning">{part}</mark> : part
+          part.toLowerCase() === cleanQuery.toLowerCase() ? <mark key={i} className="p-0 bg-warning">{part}</mark> : part
         )}
       </span>
     );
@@ -45,13 +48,18 @@ const NoteCard = ({ item, onEdit }) => {
   const renderContentWithWikiLinks = (content) => {
     if (!content) return null;
     
-    // Pre-process content to convert [[Title]] or [[Title|Label]] to a custom link format
-    let processedContent = content.replace(/\[\[(.*?)(?:\|(.*?))?\]\]/g, (match, title, label) => {
-      return `[${label || title}](wiki://${title.trim()})`;
+    // Improved regex to handle spaces: [[ Title | Label ]]
+    let processedContent = content.replace(/\[\[\s*([^|\]]+?)\s*(?:\|\s*([^\]]+?)\s*)?\]\]/g, (match, title, label) => {
+      return `[${label || title}](wiki://${encodeURIComponent(title.trim())})`;
     });
+
+    const query = filters.search;
+    const cleanQuery = query?.replace(/^"(.*)"$/, '$1');
+    const escapedQuery = cleanQuery?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     return (
       <ReactMarkdown 
+        urlTransform={(uri) => uri}
         rehypePlugins={[rehypeHighlight]}
         components={{
           a: ({node, ...props}) => {
@@ -65,7 +73,7 @@ const NoteCard = ({ item, onEdit }) => {
                       e.preventDefault();
                       e.stopPropagation();
                       playAiSound('info');
-                      setFilters({ search: decodeURIComponent(title), showArchived: false, showTrashed: false });
+                      setFilters({ search: `"${decodeURIComponent(title)}"`, showArchived: false, showTrashed: false });
                   }}
                 >
                   {props.children}
@@ -76,14 +84,13 @@ const NoteCard = ({ item, onEdit }) => {
           },
           // Custom text renderer for search highlighting
           text: ({node, ...props}) => {
-             const query = filters.search;
-             if (!query || typeof props.children !== 'string') return <span>{props.children}</span>;
+             if (!cleanQuery || typeof props.children !== 'string') return <span>{props.children}</span>;
              
-             const parts = props.children.split(new RegExp(`(${query})`, 'gi'));
+             const parts = props.children.split(new RegExp(`(${escapedQuery})`, 'gi'));
              return (
                <span>
                  {parts.map((part, i) => 
-                   part.toLowerCase() === query.toLowerCase() ? <mark key={i} className="p-0 bg-warning rounded-1">{part}</mark> : part
+                   part.toLowerCase() === cleanQuery.toLowerCase() ? <mark key={i} className="p-0 bg-warning rounded-1">{part}</mark> : part
                  )}
                </span>
              );
@@ -138,10 +145,10 @@ const NoteCard = ({ item, onEdit }) => {
     if (i.id === item.id || i.trashed) return false;
     
     // Improved regex to find wiki-links to this item's title
-    // Handles [[Title]] and [[Title|Label]]
+    // Handles [[Title]], [[ Title ]], [[Title|Label]], [[ Title | Label ]]
     // Escapes special characters in title for regex
     const escapedTitle = item.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const wikiLinkRegex = new RegExp(`\\[\\[${escapedTitle}(\\|.*?)?\\]\\]`, 'i');
+    const wikiLinkRegex = new RegExp(`\\[\\[\\s*${escapedTitle}\\s*(\\|.*?)?\\]\\]`, 'i');
     return wikiLinkRegex.test(i.content);
   });
 
@@ -169,7 +176,9 @@ const NoteCard = ({ item, onEdit }) => {
 
   const getMatchCount = () => {
     if (!filters.search) return 0;
-    const regex = new RegExp(filters.search, 'gi');
+    const cleanQuery = filters.search.replace(/^"(.*)"$/, '$1');
+    const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQuery, 'gi');
     const titleMatches = (item.title.match(regex) || []).length;
     const contentMatches = (item.content.match(regex) || []).length;
     return titleMatches + contentMatches;
@@ -178,13 +187,20 @@ const NoteCard = ({ item, onEdit }) => {
   const matchCount = getMatchCount();
 
   return (
-    <div className={`card mb-3 shadow-sm ${item.pinned ? 'border-primary border-2' : ''} ${matchCount > 0 ? 'border-warning' : ''}`}>
+    <motion.div 
+      whileHover={{ y: -5, transition: { duration: 0.2 } }}
+      className={`card h-100 shadow-sm ${item.pinned ? 'border-primary border-2' : ''} ${matchCount > 0 ? 'border-warning' : ''}`}
+    >
       <div className="card-body p-3">
         {matchCount > 0 && (
             <div className="position-absolute top-0 end-0 m-2">
-                <span className="badge bg-warning text-dark animate-pulse shadow-sm">
+                <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="badge bg-warning text-dark animate-pulse shadow-sm"
+                >
                     ✨ {matchCount} {matchCount === 1 ? 'match' : 'matches'}
-                </span>
+                </motion.span>
             </div>
         )}
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
@@ -196,21 +212,24 @@ const NoteCard = ({ item, onEdit }) => {
           <div className="d-flex gap-1 ms-auto">
              {!item.trashed && (
                  <>
-                    <button 
+                    <motion.button 
+                        whileTap={{ scale: 0.9 }}
                         className="btn btn-sm btn-outline-secondary"
                         onClick={handleCopy}
                         title="Copy to Clipboard"
                     >
                         📋
-                    </button>
-                    <button 
+                    </motion.button>
+                    <motion.button 
+                        whileTap={{ scale: 0.9 }}
                         className="btn btn-sm btn-outline-info"
                         onClick={handleExportMarkdown}
                         title="Download as Markdown"
                     >
                         💾
-                    </button>
-                    <button 
+                    </motion.button>
+                    <motion.button 
+                        whileTap={{ scale: 0.9 }}
                         className={`btn btn-sm ${item.pinned ? 'btn-primary' : 'btn-outline-primary'}`}
                         onClick={() => {
                             playAiSound('info');
@@ -219,8 +238,9 @@ const NoteCard = ({ item, onEdit }) => {
                         title={item.pinned ? "Unpin" : "Pin to top"}
                     >
                         📌
-                    </button>
-                    <button 
+                    </motion.button>
+                    <motion.button 
+                        whileTap={{ scale: 0.9 }}
                         className="btn btn-sm btn-outline-secondary"
                         onClick={() => {
                             playAiSound('info');
@@ -229,23 +249,38 @@ const NoteCard = ({ item, onEdit }) => {
                         title={item.archived ? "Restore" : "Archive"}
                     >
                         {item.archived ? '📤' : '📥'}
-                    </button>
-                    <button className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" onClick={handleEdit} title="Edit">
+                    </motion.button>
+                    <motion.button 
+                        whileTap={{ scale: 0.9 }}
+                        className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                        onClick={handleEdit} 
+                        title="Edit"
+                    >
                         <span>✏️</span>
                         <span className="d-none d-sm-inline">Edit</span>
-                    </button>
+                    </motion.button>
                  </>
              )}
              {item.trashed && (
-                 <button className="btn btn-sm btn-outline-success d-flex align-items-center gap-1" onClick={handleRestore} title="Restore">
+                 <motion.button 
+                    whileTap={{ scale: 0.9 }}
+                    className="btn btn-sm btn-outline-success d-flex align-items-center gap-1" 
+                    onClick={handleRestore} 
+                    title="Restore"
+                 >
                     <span>♻️</span>
                     <span className="d-none d-sm-inline">Restore</span>
-                 </button>
+                 </motion.button>
              )}
-             <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={handleDelete} title={item.trashed ? "Delete Permanently" : "Move to Trash"}>
+             <motion.button 
+                whileTap={{ scale: 0.9 }}
+                className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" 
+                onClick={handleDelete} 
+                title={item.trashed ? "Delete Permanently" : "Move to Trash"}
+             >
                 <span>{item.trashed ? '🔥' : '🗑️'}</span>
                 <span className="d-none d-sm-inline">{item.trashed ? 'Delete' : 'Trash'}</span>
-             </button>
+             </motion.button>
           </div>
         </div>
 
@@ -277,20 +312,30 @@ const NoteCard = ({ item, onEdit }) => {
             
             {isLongContent && (
                 <div className="text-center mt-n3 position-relative z-2">
-                    <button 
+                    <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         className="btn btn-primary btn-sm px-4 rounded-pill shadow-sm" 
                         onClick={handleShowMore}
                         style={{ marginTop: '-15px' }}
                     >
                         Read full note ↗
-                    </button>
+                    </motion.button>
                 </div>
             )}
         </div>
 
         <div className="mt-3">
           {item.tags.map((tag, idx) => (
-            <span key={idx} className="badge bg-secondary me-1 rounded-pill">#{tag}</span>
+            <motion.span 
+              key={idx} 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: idx * 0.05 }}
+              className="badge bg-secondary me-1 rounded-pill"
+            >
+                #{tag}
+            </motion.span>
           ))}
         </div>
 
@@ -299,8 +344,10 @@ const NoteCard = ({ item, onEdit }) => {
                 <small className="text-muted d-block mb-1">🔗 Linked from:</small>
                 <div className="d-flex flex-wrap gap-2">
                     {backlinks.map(link => (
-                        <span 
+                        <motion.span 
                             key={link.id} 
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
                             className="badge bg-light text-primary border cursor-pointer"
                             style={{ cursor: 'pointer' }}
                             onClick={() => {
@@ -310,7 +357,7 @@ const NoteCard = ({ item, onEdit }) => {
                             }}
                         >
                             {link.title}
-                        </span>
+                        </motion.span>
                     ))}
                 </div>
             </div>
@@ -320,7 +367,7 @@ const NoteCard = ({ item, onEdit }) => {
         <span>Updated {formatDate(item.updatedAt)}</span>
         {item.type !== 'link' && <span>⏱️ {calculateReadingTime(item.content)} min read</span>}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

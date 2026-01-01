@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
@@ -10,15 +11,12 @@ const CustomModal = () => {
   const { state, setFilters } = useVault();
   const { isOpen, title, message, content, item, type, onConfirm } = modalConfig;
   const { filters } = state;
-  const [animate, setAnimate] = useState(false);
   const [currentMatch, setCurrentMatch] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const modalBodyRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => setAnimate(true), 10);
-      
       // Auto-scroll to first search match in read mode
       if (type === 'read' && filters.search) {
           const scrollToMatch = () => {
@@ -32,8 +30,8 @@ const CustomModal = () => {
                   setCurrentMatch(1);
                   matches.forEach(m => m.classList.remove('active-mark'));
                   matches[0].classList.add('active-mark');
-                  matches[0].scrollIntoView({ 
-                      behavior: 'smooth', 
+                  matches[0].scrollIntoView({
+                      behavior: 'smooth',
                       block: 'center'
                   });
               } else {
@@ -47,8 +45,6 @@ const CustomModal = () => {
           setTotalMatches(0);
           setCurrentMatch(0);
       }
-    } else {
-      setAnimate(false);
     }
   }, [isOpen, type, filters.search]);
 
@@ -74,8 +70,6 @@ const CustomModal = () => {
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
-  if (!isOpen) return null;
-
   const handleConfirm = () => {
     if (onConfirm) onConfirm();
     closeModal();
@@ -85,9 +79,8 @@ const CustomModal = () => {
 
   const highlightText = (text, query) => {
     if (!query) return text;
-    // Remove quotes if searching for exact match
     const cleanQuery = query.replace(/^"(.*)"$/, '$1');
-    const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\\]/g, '\\$&');
     const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
     return (
       <span>
@@ -100,15 +93,16 @@ const CustomModal = () => {
 
   const renderContentWithWikiLinks = (content) => {
     if (!content) return null;
-    let processedContent = content.replace(/\[\[(.*?)(?:\|(.*?))?\]\]/g, (match, title, label) => {
-      return `[${label || title}](wiki://${title.trim()})`;
+    
+    // Improved regex to handle spaces: [[ Title | Label ]]
+    let processedContent = content.replace(/\[\[\s*([^|\]]+?)\s*(?:\|\s*([^\]]+?)\s*)?\]\]/g, (match, title, label) => {
+      return `[${label || title}](wiki://${encodeURIComponent(title.trim())})`;
     });
 
     const query = filters.search;
     const cleanQuery = query?.replace(/^"(.*)"$/, '$1');
     const escapedQuery = cleanQuery?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    // Use a custom component for all text-containing elements to apply highlighting
     const HighlightedText = ({ children }) => {
         if (!cleanQuery || typeof children !== 'string') return <>{children}</>;
         const parts = children.split(new RegExp(`(${escapedQuery})`, 'gi'));
@@ -123,6 +117,7 @@ const CustomModal = () => {
 
     return (
       <ReactMarkdown 
+        urlTransform={(uri) => uri}
         rehypePlugins={[rehypeHighlight]}
         components={{
           a: ({node, ...props}) => {
@@ -135,7 +130,7 @@ const CustomModal = () => {
                   onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setFilters({ search: decodeURIComponent(title), showArchived: false, showTrashed: false });
+                      setFilters({ search: `"${decodeURIComponent(title)}"`, showArchived: false, showTrashed: false });
                   }}
                 >
                   <HighlightedText>{props.children}</HighlightedText>
@@ -184,144 +179,158 @@ const CustomModal = () => {
   };
 
   return (
-    <div 
-      className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" 
-      style={{ 
-        zIndex: 1050, 
-        backgroundColor: 'rgba(0,0,0,0.6)', 
-        backdropFilter: 'blur(8px)',
-        opacity: animate ? 1 : 0,
-        transition: 'opacity 0.3s ease'
-      }}
-      onClick={closeModal}
-    >
-      <div 
-        className={`card shadow-2xl border-0 overflow-hidden ${isReadMode ? 'reader-modal' : ''}`} 
-        style={{ 
-          maxWidth: isReadMode ? '850px' : '450px', 
-          width: '95%', 
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          transform: animate ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(30px)',
-          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          borderRadius: '24px',
-          backgroundColor: 'var(--bs-body-bg)'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header - Different for Read Mode */}
-        {!isReadMode ? (
-            <div 
-                className="text-white text-center py-5 px-4 flex-shrink-0" 
-                style={{ background: getGradient() }}
-            >
-                <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>{getIcon()}</div>
-                <h3 className="fw-bold mb-0">{title}</h3>
-            </div>
-        ) : (
-            <div className="d-flex flex-column border-bottom sticky-top bg-body z-2">
-                <div className="d-flex justify-content-between align-items-center p-4">
-                    <div className="d-flex align-items-center gap-3">
-                        <span className="fs-3">📖</span>
-                        <div>
-                            <h4 className="mb-0 fw-bold text-truncate" style={{ maxWidth: '50vw' }}>{title}</h4>
-                        </div>
-                    </div>
-                    <button 
-                        className="btn btn-link text-secondary p-2 text-decoration-none fs-4 line-height-1" 
-                        onClick={closeModal}
-                    >
-                        ✕
-                    </button>
+    <AnimatePresence>
+      {isOpen && (
+        <div 
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+          style={{
+            zIndex: 1050,
+          }}
+        >
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="position-absolute top-0 start-0 w-100 h-100"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)', 
+              backdropFilter: 'blur(8px)',
+            }}
+            onClick={closeModal}
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className={`card shadow-2xl border-0 overflow-hidden ${isReadMode ? 'reader-modal' : ''}`}
+            style={{
+              maxWidth: isReadMode ? '850px' : '450px',
+              width: '95%',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '24px',
+              backgroundColor: 'var(--bs-body-bg)',
+              position: 'relative',
+              zIndex: 1051
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header - Different for Read Mode */}
+            {!isReadMode ? (
+                <div 
+                    className="text-white text-center py-5 px-4 flex-shrink-0"
+                    style={{ background: getGradient() }}
+                >
+                    <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>{getIcon()}</div>
+                    <h3 className="fw-bold mb-0">{title}</h3>
                 </div>
-                
-                {filters.search && totalMatches > 0 && (
-                    <div className="px-4 pb-3 d-flex align-items-center gap-3 bg-light-subtle py-2">
-                        <div className="d-flex align-items-center gap-2">
-                            <span className="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">
-                                ✨ {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} found
-                            </span>
-                        </div>
-                        <div className="ms-auto d-flex align-items-center gap-2">
-                            <span className="small text-muted fw-bold me-2">{currentMatch} of {totalMatches}</span>
-                            <div className="btn-group btn-group-sm">
-                                <button className="btn btn-outline-secondary px-3" onClick={() => navigateMatch('prev')}>上 Prev</button>
-                                <button className="btn btn-outline-secondary px-3" onClick={() => navigateMatch('next')}>下 Next</button>
+            ) : (
+                <div className="d-flex flex-column border-bottom sticky-top bg-body z-2">
+                    <div className="d-flex justify-content-between align-items-center p-4">
+                        <div className="d-flex align-items-center gap-3">
+                            <span className="fs-3">📖</span>
+                            <div>
+                                <h4 className="mb-0 fw-bold text-truncate" style={{ maxWidth: '50vw' }}>{title}</h4>
                             </div>
                         </div>
+                        <button 
+                            className="btn btn-link text-secondary p-2 text-decoration-none fs-4 line-height-1"
+                            onClick={closeModal}
+                        >
+                            ✕
+                        </button>
                     </div>
-                )}
-            </div>
-        )}
+                    
+                    {filters.search && totalMatches > 0 && (
+                        <div className="px-4 pb-3 d-flex align-items-center gap-3 bg-light-subtle py-2">
+                            <div className="d-flex align-items-center gap-2">
+                                <span className="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">
+                                    ✨ {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} found
+                                </span>
+                            </div>
+                            <div className="ms-auto d-flex align-items-center gap-2">
+                                <span className="small text-muted fw-bold me-2">{currentMatch} of {totalMatches}</span>
+                                <div className="btn-group btn-group-sm">
+                                    <button className="btn btn-outline-secondary px-3" onClick={() => navigateMatch('prev')}>上 Prev</button>
+                                    <button className="btn btn-outline-secondary px-3" onClick={() => navigateMatch('next')}>下 Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
-        {/* Body */}
-        <div 
-            ref={modalBodyRef}
-            className={`card-body p-4 p-md-5 overflow-auto custom-scrollbar`}
-            style={{ fontSize: isReadMode ? '1.1rem' : '1rem', lineHeight: '1.6' }}
-        >
-          {item ? (
-              <div className="markdown-preview reader-modal-content">
-                  {item.type === 'code' ? (
-                      <div className="bg-body-tertiary p-3 rounded border border-start-4 border-info">
-                          <div className="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
-                              <small className="text-info fw-bold">{item.language?.toUpperCase() || 'CODE'}</small>
-                              <button className="btn btn-sm btn-outline-secondary" onClick={() => {
-                                  navigator.clipboard.writeText(item.content);
-                                  alert('Code copied!');
-                              }}>Copy Code</button>
+            {/* Body */}
+            <div 
+                ref={modalBodyRef}
+                className={`card-body p-4 p-md-5 overflow-auto custom-scrollbar`}
+                style={{ fontSize: isReadMode ? '1.1rem' : '1rem', lineHeight: '1.6' }}
+            >
+              {item ? (
+                  <div className="markdown-preview reader-modal-content">
+                      {item.type === 'code' ? (
+                          <div className="bg-body-tertiary p-3 rounded border border-start-4 border-info">
+                              <div className="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                                  <small className="text-info fw-bold">{item.language?.toUpperCase() || 'CODE'}</small>
+                                  <button className="btn btn-sm btn-outline-secondary" onClick={() => {
+                                      navigator.clipboard.writeText(item.content);
+                                      alert('Code copied!');
+                                  }}>Copy Code</button>
+                              </div>
+                              <pre className="mb-0 overflow-auto" style={{ fontSize: '0.9rem' }}>
+                                  <code>{filters.search ? highlightText(item.content, filters.search) : item.content}</code>
+                              </pre>
                           </div>
-                          <pre className="mb-0 overflow-auto" style={{ fontSize: '0.9rem' }}>
-                              <code>{filters.search ? highlightText(item.content, filters.search) : item.content}</code>
-                          </pre>
-                      </div>
-                  ) : (
-                      <div className="d-block text-start">
-                           {renderContentWithWikiLinks(item.content)}
-                      </div>
-                  )}
-              </div>
-          ) : content ? (
-              <div className="text-body">
-                  {content}
-              </div>
-          ) : (
-              <div className="text-center">
-                  <p className="lead text-secondary mb-0">{message}</p>
-              </div>
-          )}
-        </div>
+                      ) : (
+                          <div className="d-block text-start">
+                               {renderContentWithWikiLinks(item.content)}
+                          </div>
+                      )}
+                  </div>
+              ) : content ? (
+                  <div className="text-body">
+                      {content}
+                  </div>
+              ) : (
+                  <div className="text-center">
+                      <p className="lead text-secondary mb-0">{message}</p>
+                  </div>
+              )}
+            </div>
 
-        {/* Footer */}
-        <div className={`p-4 border-top bg-body-tertiary d-flex justify-content-end gap-3 flex-shrink-0`}>
-            {!isReadMode ? (
-                <>
+            {/* Footer */}
+            <div className={`p-4 border-top bg-body-tertiary d-flex justify-content-end gap-3 flex-shrink-0`}>
+                {!isReadMode ? (
+                    <>
+                        <button 
+                            className="btn btn-light px-4 rounded-pill fw-medium border"
+                            onClick={closeModal}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            className="btn px-4 rounded-pill text-white fw-bold shadow-sm"
+                            style={{ background: type === 'danger' ? '#fa5252' : '#228be6' }}
+                            onClick={handleConfirm}
+                        >
+                            {type === 'danger' ? 'Yes, Delete' : 'Confirm'}
+                        </button>
+                    </>
+                ) : (
                     <button 
-                        className="btn btn-light px-4 rounded-pill fw-medium border" 
+                        className="btn btn-primary px-5 rounded-pill fw-bold shadow-sm"
                         onClick={closeModal}
                     >
-                        Cancel
+                        Done Reading
                     </button>
-                    <button 
-                        className="btn px-4 rounded-pill text-white fw-bold shadow-sm"
-                        style={{ background: type === 'danger' ? '#fa5252' : '#228be6' }} 
-                        onClick={handleConfirm}
-                    >
-                        {type === 'danger' ? 'Yes, Delete' : 'Confirm'}
-                    </button>
-                </>
-            ) : (
-                <button 
-                    className="btn btn-primary px-5 rounded-pill fw-bold shadow-sm"
-                    onClick={closeModal}
-                >
-                    Done Reading
-                </button>
-            )}
+                )}
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };
 

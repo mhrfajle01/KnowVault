@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Header from './components/Header';
 import NoteEditor from './components/NoteEditor';
 import NoteList from './components/NoteList';
@@ -85,29 +86,40 @@ function App() {
         </button>
       </div>
 
-      {view === 'vault' ? (
-          <div className="container">
-            <div className="mb-4 p-4 rounded-4 shadow-sm bg-body border border-light-subtle">
-                <SearchBar />
-            </div>
-            <div className="row">
-              <div className="col-lg-3">
-                <Sidebar />
-              </div>
-              <div className="col-lg-9">
-                <div ref={editorRef}>
-                    <NoteEditor />
+      <AnimatePresence mode="wait">
+        <motion.div
+            key={view}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+        >
+          {view === 'vault' ? (
+              <div className="container">
+                <div className="mb-4 p-4 rounded-4 shadow-sm bg-body border border-light-subtle">
+                    <SearchBar />
                 </div>
-                <hr className="my-4" />
-                <NoteList onEdit={scrollToEditor} />
+                <div className="row">
+                  <div className="col-lg-3">
+                    <Sidebar />
+                  </div>
+                  <div className="col-lg-9">
+                    <div ref={editorRef}>
+                        <NoteEditor />
+                    </div>
+                    <hr className="my-4" />
+                    <NoteList onEdit={scrollToEditor} />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-      ) : (
-          <Dashboard />
-      )}
+          ) : (
+              <Dashboard onViewChange={setView} />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
 
 export default App;
+

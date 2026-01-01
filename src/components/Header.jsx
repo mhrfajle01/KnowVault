@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
@@ -69,17 +70,31 @@ const Header = () => {
   return (
     <nav className={`navbar navbar-expand-lg ${theme === 'dark' ? 'navbar-dark bg-body-tertiary border-bottom' : 'navbar-dark bg-gradient-primary'} mb-4 transition-colors`}>
       <div className="container d-flex flex-wrap justify-content-between align-items-center">
-        <span className="navbar-brand mb-0 h1 d-none d-sm-inline">Personal Knowledge Vault</span>
-        <span className="navbar-brand mb-0 h1 d-inline d-sm-none">KnowVault</span>
+        <motion.span 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="navbar-brand mb-0 h1 d-none d-sm-inline"
+        >
+          Personal Knowledge Vault
+        </motion.span>
+        <motion.span 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="navbar-brand mb-0 h1 d-inline d-sm-none"
+        >
+          KnowVault
+        </motion.span>
         
         <div className="d-flex gap-1 gap-sm-2 my-1">
-           <button 
+           <motion.button 
+             whileHover={{ scale: 1.05 }}
+             whileTap={{ scale: 0.95 }}
              className="btn btn-sm btn-outline-light" 
              onClick={handleExport}
              title="Export Data"
            >
              ⬇ Export
-           </button>
+           </motion.button>
            
            <input 
              type="file" 
@@ -88,15 +103,19 @@ const Header = () => {
              accept=".json" 
              onChange={handleImportFile}
            />
-           <button 
+           <motion.button 
+             whileHover={{ scale: 1.05 }}
+             whileTap={{ scale: 0.95 }}
              className="btn btn-sm btn-outline-light" 
              onClick={handleImportClick}
              title="Import Data"
            >
              ⬆ Import
-           </button>
+           </motion.button>
 
-           <button 
+           <motion.button 
+             whileHover={{ rotate: 15 }}
+             whileTap={{ scale: 0.8, rotate: -15 }}
              className="btn btn-sm btn-outline-light" 
              onClick={() => {
                  playAiSound('fun');
@@ -105,7 +124,7 @@ const Header = () => {
              title="Toggle Theme"
            >
              {theme === 'light' ? '🌙' : '☀️'}
-           </button>
+           </motion.button>
         </div>
       </div>
     </nav>

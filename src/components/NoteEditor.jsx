@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css'; // Light theme for code
@@ -6,7 +7,7 @@ import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
 
 const NoteEditor = () => {
-  const { state, addItem, updateItem, setEditingItem, allTags } = useVault();
+  const { state, addItem, updateItem, setEditingItem, allTags, setFilters } = useVault();
   const { enhanceText, playAiSound } = useAI();
   const { editingItem } = state;
 
@@ -95,9 +96,6 @@ const NoteEditor = () => {
           // For new items, we generally don't auto-save until they explicitly click "Create" 
           // to avoid creating junk. But if this function is called manually, we do.
           await addItem(payload);
-          // After add, we don't switch to "editing" mode in this simple version, 
-          // we just reset. But for a real "doc" feel, we might want to.
-          // For now, let's keep the explicit "Save" button for new items standard.
         }
         setSaveStatus('saved');
     } catch (e) {
@@ -173,19 +171,15 @@ const NoteEditor = () => {
     playAiSound('info');
     
     try {
-        // Step 1: Reading
         setEnhanceStage('reading');
         await new Promise(r => setTimeout(r, 800));
         
-        // Step 2: Thinking
         setEnhanceStage('thinking');
         await new Promise(r => setTimeout(r, 1200));
         
-        // Step 3: Writing
         setEnhanceStage('writing');
         const enhanced = await enhanceText(formData.content);
         
-        // Simulate "typing" effect or just a small delay for finalization
         await new Promise(r => setTimeout(r, 500));
         
         setFormData(prev => ({ ...prev, content: enhanced }));
@@ -198,22 +192,54 @@ const NoteEditor = () => {
     }
   };
 
+  const renderMarkdownWithWikiLinks = (content) => {
+    if (!content) return null;
+    const processedContent = content.replace(/\[\[\s*([^|\]]+?)\s*(?:\|\s*([^\]]+?)\s*)?\]\]/g, (match, title, label) => {
+      return `[${label || title}](wiki://${encodeURIComponent(title.trim())})`;
+    });
+
+    return (
+      <ReactMarkdown 
+        urlTransform={(uri) => uri}
+        rehypePlugins={[rehypeHighlight]}
+        components={{
+            a: ({node, ...props}) => {
+                if (props.href && props.href.startsWith('wiki://')) {
+                  const title = decodeURIComponent(props.href.replace('wiki://', ''));
+                  return (
+                    <span 
+                      className="text-primary fw-bold cursor-pointer hover-underline"
+                      onClick={() => {
+                          playAiSound('info');
+                          setFilters({ search: `"${title}"`, showArchived: false, showTrashed: false });
+                      }}
+                    >
+                      {props.children}
+                    </span>
+                  );
+                }
+                return <a {...props} target="_blank" rel="noopener noreferrer" />;
+            }
+        }}
+      >
+        {processedContent}
+      </ReactMarkdown>
+    );
+  };
+
   const renderPreview = () => {
     if (!formData.content.trim()) return <div className="text-muted italic">No content to preview</div>;
 
-    // Detect if content is likely JSON
     const isJson = (formData.type === 'code' && formData.language?.toLowerCase() === 'json') || 
                    (formData.content.trim().startsWith('{') || formData.content.trim().startsWith('['));
 
     if (isJson && formData.type === 'code') {
         try {
-            // Try to pretty print for preview if it's JSON type
             const obj = JSON.parse(formData.content);
             return (
                 <pre className="m-0"><code className="language-json">{JSON.stringify(obj, null, 2)}</code></pre>
             );
         } catch (e) {
-            // If invalid JSON, just show as is
             return <pre className="m-0"><code>{formData.content}</code></pre>;
         }
     }
@@ -227,19 +253,31 @@ const NoteEditor = () => {
         );
     }
 
-    return <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{formData.content}</ReactMarkdown>;
+    return renderMarkdownWithWikiLinks(formData.content);
   };
 
   return (
-    <div className="card mb-4 shadow-sm">
+    <motion.div 
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="card mb-4 shadow-sm"
+    >
       <div className="card-header d-flex justify-content-between align-items-center">
         <div className="d-flex align-items-center gap-2">
             <h5 className="mb-0">{editingItem ? 'Edit Item' : 'New Item'}</h5>
-            {editingItem && (
-                 <span className={`badge rounded-pill ${saveStatus === 'saved' ? 'text-bg-success' : saveStatus === 'saving' ? 'text-bg-warning' : 'text-bg-secondary'}`}>
-                    {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
-                 </span>
-            )}
+            <AnimatePresence>
+                {editingItem && (
+                    <motion.span 
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className={`badge rounded-pill ${saveStatus === 'saved' ? 'text-bg-success' : saveStatus === 'saving' ? 'text-bg-warning' : 'text-bg-secondary'}`}
+                    >
+                        {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
+                    </motion.span>
+                )}
+            </AnimatePresence>
         </div>
         <div className="d-flex gap-2">
              <button type="button" className={`btn btn-sm ${!isPreview ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setIsPreview(false)}>Write</button>
@@ -248,13 +286,12 @@ const NoteEditor = () => {
       </div>
       <div className="card-body">
         <form onSubmit={manualSubmit}>
-          {/* Top Metadata Row */}
           <div className="row g-2 mb-3">
              <div className="col-md-3">
                 <select 
-                  className="form-select form-select-sm" 
-                  name="type" 
-                  value={formData.type} 
+                  className="form-select form-select-sm"
+                  name="type"
+                  value={formData.type}
                   onChange={handleChange}
                   disabled={!!editingItem} 
                 >
@@ -277,18 +314,17 @@ const NoteEditor = () => {
           </div>
 
           {formData.type === 'link' && (
-            <div className="mb-3">
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mb-3">
               <input type="url" className="form-control form-control-sm" name="url" value={formData.url} onChange={handleChange} required placeholder="https://example.com" />
-            </div>
+            </motion.div>
           )}
 
           {formData.type === 'code' && (
-             <div className="mb-3">
+             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mb-3">
                 <input type="text" className="form-control form-control-sm" name="language" value={formData.language} onChange={handleChange} placeholder="Language (e.g. javascript)" />
-             </div>
+             </motion.div>
           )}
 
-          {/* Markdown Toolbar */}
           {!isPreview && formData.type !== 'link' && (
               <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
                   <div className="btn-group btn-group-responsive shadow-sm">
@@ -299,9 +335,10 @@ const NoteEditor = () => {
                       <button type="button" className="btn btn-sm btn-light" onClick={() => insertMarkdown('```')} title="Code Block">```</button>
                   </div>
                   <div className="d-flex flex-wrap gap-2">
-                      <button 
+                      <motion.button 
+                        whileTap={{ scale: 0.95 }}
                         type="button" 
-                        className={`btn btn-sm ${isEnhancing ? 'btn-secondary shadow-none' : 'btn-outline-primary shadow-sm'} d-flex align-items-center justify-content-center gap-2 px-3 py-2 rounded-pill transition-all flex-grow-1`} 
+                        className={`btn btn-sm ${isEnhancing ? 'btn-secondary shadow-none' : 'btn-outline-primary shadow-sm'} d-flex align-items-center justify-content-center gap-2 px-3 py-2 rounded-pill transition-all flex-grow-1`}
                         onClick={handleEnhance}
                         disabled={isEnhancing || !formData.content.trim()}
                       >
@@ -316,71 +353,93 @@ const NoteEditor = () => {
                                 <span className="fw-bold">AI Enhance</span>
                               </>
                           )}
-                      </button>
+                      </motion.button>
                       {(formData.content.trim().startsWith('{') || formData.content.trim().startsWith('[')) && (
-                          <button type="button" className="btn btn-sm btn-outline-info" onClick={formatJSON}>
+                          <motion.button whileTap={{ scale: 0.95 }} type="button" className="btn btn-sm btn-outline-info" onClick={formatJSON}>
                               ✨ Format JSON
-                          </button>
+                          </motion.button>
                       )}
                   </div>
               </div>
           )}
 
-          {/* Editor / Preview Area */}
           <div className="mb-3">
-            {isPreview ? (
-                <div className="border rounded p-3 bg-body-tertiary overflow-auto markdown-preview" style={{ minHeight: '300px', maxHeight: '600px' }}>
-                    {renderPreview()}
-                </div>
-            ) : (
-                <textarea 
-                  className="form-control font-monospace"
-                  name="content" 
-                  rows="10" 
-                  value={formData.content} 
-                  onChange={handleChange} 
-                  required
-                  placeholder="Write in Markdown..."
-                ></textarea>
-            )}
+            <AnimatePresence mode="wait">
+              {isPreview ? (
+                  <motion.div 
+                    key="preview"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="border rounded p-3 bg-body-tertiary overflow-auto markdown-preview"
+                    style={{ minHeight: '300px', maxHeight: '600px' }}
+                  >
+                      {renderPreview()}
+                  </motion.div>
+              ) : (
+                  <motion.div
+                    key="editor"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <textarea 
+                      className="form-control font-monospace"
+                      name="content" 
+                      rows="10" 
+                      value={formData.content} 
+                      onChange={handleChange} 
+                      required
+                      placeholder="Write in Markdown..."
+                    ></textarea>
+                  </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Tags & Actions */}
           <div className="mb-3 position-relative">
              <input 
                 type="text" 
-                className="form-control form-control-sm" 
+                className="form-control form-control-sm"
                 name="tags" 
                 value={formData.tags} 
                 onChange={handleChange} 
                 placeholder="Tags (comma separated)"
                 onFocus={() => setShowTagSuggestions(true)}
              />
-             {showTagSuggestions && formData.tags.split(',').pop().trim().length > 0 && (
-                 <div className="list-group position-absolute w-100 shadow-sm z-3" style={{ top: '100%' }}>
-                     {allTags
-                        .filter(t => t.toLowerCase().includes(formData.tags.split(',').pop().trim().toLowerCase()))
-                        .filter(t => !formData.tags.split(',').map(st => st.trim().toLowerCase()).includes(t.toLowerCase()))
-                        .slice(0, 5)
-                        .map(tag => (
-                            <button 
-                                key={tag} 
-                                type="button" 
-                                className="list-group-item list-group-item-action py-1 small"
-                                onClick={() => {
-                                    const parts = formData.tags.split(',');
-                                    parts.pop();
-                                    const newTags = [...parts.map(p => p.trim()), tag].join(', ') + ', ';
-                                    setFormData(prev => ({ ...prev, tags: newTags }));
-                                    setShowTagSuggestions(false);
-                                }}
-                            >
-                                #{tag}
-                            </button>
-                        ))
-                     }
-                 </div>
-             )}
+             <AnimatePresence>
+                {showTagSuggestions && formData.tags.split(',').pop().trim().length > 0 && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="list-group position-absolute w-100 shadow-sm z-3" 
+                        style={{ top: '100%' }}
+                    >
+                        {allTags
+                            .filter(t => t.toLowerCase().includes(formData.tags.split(',').pop().trim().toLowerCase()))
+                            .filter(t => !formData.tags.split(',').map(st => st.trim().toLowerCase()).includes(t.toLowerCase()))
+                            .slice(0, 5)
+                            .map(tag => (
+                                <button 
+                                    key={tag} 
+                                    type="button" 
+                                    className="list-group-item list-group-item-action py-1 small"
+                                    onClick={() => {
+                                        const parts = formData.tags.split(',');
+                                        parts.pop();
+                                        const newTags = [...parts.map(p => p.trim()), tag].join(', ') + ', ';
+                                        setFormData(prev => ({ ...prev, tags: newTags }));
+                                        setShowTagSuggestions(false);
+                                    }}
+                                >
+                                    #{tag}
+                                </button>
+                            ))
+                        }
+                    </motion.div>
+                )}
+             </AnimatePresence>
           </div>
 
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -388,19 +447,19 @@ const NoteEditor = () => {
                  {wordCount} words | {charCount} chars
              </div>
              <div className="d-flex gap-2">
-                <button type="submit" className="btn btn-success">
+                <motion.button whileTap={{ scale: 0.95 }} type="submit" className="btn btn-success">
                   {editingItem ? 'Save' : 'Create'}
-                </button>
+                </motion.button>
                 {editingItem && (
-                  <button type="button" className="btn btn-secondary" onClick={handleCancel}>
+                  <motion.button whileTap={{ scale: 0.95 }} type="button" className="btn btn-secondary" onClick={handleCancel}>
                     Cancel
-                  </button>
+                  </motion.button>
                 )}
              </div>
           </div>
         </form>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

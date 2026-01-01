@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { useAI } from '../context/AIContext';
 
@@ -89,7 +90,11 @@ const AIChat = () => {
   return (
     <>
       {/* Floating Action Button */}
-      <button 
+      <motion.button 
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        whileHover={{ scale: 1.1, rotate: 10 }}
+        whileTap={{ scale: 0.9 }}
         className="btn btn-primary rounded-circle shadow-lg position-fixed d-flex align-items-center justify-content-center"
         style={{ 
             bottom: '30px', 
@@ -102,128 +107,156 @@ const AIChat = () => {
         onClick={toggleChat}
         title="Ask AI"
       >
-        <span style={{ fontSize: '24px' }}>✨</span>
-      </button>
+        <span style={{ fontSize: '24px' }}>{isOpen ? '✕' : '✨'}</span>
+      </motion.button>
 
       {/* Chat Drawer */}
-      <div 
-        className={`position-fixed top-0 end-0 h-100 bg-body shadow-lg d-flex flex-column transition-transform`}
-        style={{  
-            width: '350px', 
-            maxWidth: '100%', 
-            zIndex: 1070, 
-            transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}
-      >
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-center p-3 bg-gradient-primary text-white">
-          <h5 className="mb-0 fw-bold"><span className="me-2">✨</span>Vault AI</h5>
-          <div>
-            <button className="btn btn-sm btn-link text-white" onClick={() => setShowSettings(!showSettings)}>⚙️</button>
-            <button className="btn btn-sm btn-link text-white" onClick={toggleChat}>✕</button>
-          </div>
-        </div>
-
-        {/* Settings Area */}
-        {showSettings && (
-            <div className="p-3 bg-body-tertiary border-bottom">
-                <div className="mb-2">
-                    <label className="form-label small fw-bold">AI Provider</label>
-                    <select 
-                        className="form-select form-select-sm" 
-                        value={tempProvider} 
-                        onChange={(e) => setTempProvider(e.target.value)}
-                    >
-                        <option value="gemini">Google Gemini</option>
-                        <option value="deepseek">DeepSeek (OpenAI Compatible)</option>
-                        <option value="local">Local (Q&A)</option>
-                    </select>
-                </div>
-                {tempProvider !== 'local' && (
-                <div className="mb-2">
-                    <label className="form-label small fw-bold">API Key</label>
-                    <input 
-                        type="password" 
-                        className="form-control form-control-sm" 
-                        value={tempKey} 
-                        onChange={(e) => setTempKey(e.target.value)} 
-                        placeholder="Paste key here..."
-                    />
-                </div>
-                )}
-                <button className="btn btn-sm btn-primary w-100" onClick={handleSaveSettings}>Save Configuration</button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className={`position-fixed top-0 end-0 h-100 bg-body shadow-lg d-flex flex-column`}
+            style={{  
+                width: '350px', 
+                maxWidth: '100%', 
+                zIndex: 1070, 
+            }}
+          >
+            {/* Header */}
+            <div className="d-flex justify-content-between align-items-center p-3 bg-gradient-primary text-white">
+              <h5 className="mb-0 fw-bold"><span className="me-2">✨</span>Vault AI</h5>
+              <div>
+                <button className="btn btn-sm btn-link text-white" onClick={() => setShowSettings(!showSettings)}>⚙️</button>
+                <button className="btn btn-sm btn-link text-white" onClick={toggleChat}>✕</button>
+              </div>
             </div>
-        )}
 
-        {/* Messages Area */}
-        <div className="flex-grow-1 overflow-auto p-3 bg-body-tertiary" style={{ scrollBehavior: 'smooth' }}>
-            {chatHistory.length === 0 && (
-                <div className="text-center text-muted mt-5">
-                    <p className="display-4">🤖</p>
-                    <p>Ask me anything about your notes!</p>
-                </div>
-            )}
-            
-            {chatHistory.map((msg, idx) => (
-                <div key={idx} className={`d-flex mb-3 ${msg.role === 'user' ? 'justify-content-end' : 'justify-content-start'}`}>
-                            <div className={`p-3 rounded-4 shadow-sm ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-body-tertiary'}`} style={{ maxWidth: '85%' }}>
-                                {msg.role === 'user' ? (
-                                    <div className="mb-0">{msg.text}</div>
-                                ) : (
-                                    <div className="markdown-preview mb-0">
-                                        <ReactMarkdown>{msg.text}</ReactMarkdown>
-                                    </div>
-                                )}
+            {/* Settings Area */}
+            <AnimatePresence>
+              {showSettings && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="p-3 bg-body-tertiary border-bottom overflow-hidden"
+                  >
+                      <div className="mb-2">
+                          <label className="form-label small fw-bold">AI Provider</label>
+                          <select 
+                              className="form-select form-select-sm" 
+                              value={tempProvider} 
+                              onChange={(e) => setTempProvider(e.target.value)}
+                          >
+                              <option value="gemini">Google Gemini</option>
+                              <option value="deepseek">DeepSeek (OpenAI Compatible)</option>
+                              <option value="local">Local (Q&A)</option>
+                          </select>
+                      </div>
+                      {tempProvider !== 'local' && (
+                      <div className="mb-2">
+                          <label className="form-label small fw-bold">API Key</label>
+                          <input 
+                              type="password" 
+                              className="form-control form-control-sm" 
+                              value={tempKey} 
+                              onChange={(e) => setTempKey(e.target.value)} 
+                              placeholder="Paste key here..."
+                          />
+                      </div>
+                      )}
+                      <button className="btn btn-sm btn-primary w-100" onClick={handleSaveSettings}>Save Configuration</button>
+                  </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Messages Area */}
+            <div className="flex-grow-1 overflow-auto p-3 bg-body-tertiary" style={{ scrollBehavior: 'smooth' }}>
+                {chatHistory.length === 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-center text-muted mt-5"
+                    >
+                        <p className="display-4">🤖</p>
+                        <p>Ask me anything about your notes!</p>
+                    </motion.div>
+                )}
+                
+                {chatHistory.map((msg, idx) => (
+                    <motion.div 
+                      key={idx} 
+                      initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`d-flex mb-3 ${msg.role === 'user' ? 'justify-content-end' : 'justify-content-start'}`}
+                    >
+                        <div className={`p-3 rounded-4 shadow-sm ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-body-tertiary'}`} style={{ maxWidth: '85%' }}>
+                            {msg.role === 'user' ? (
+                                <div className="mb-0">{msg.text}</div>
+                            ) : (
+                                <div className="markdown-preview mb-0">
+                                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                ))}
+                {isAiLoading && (
+                    <div className="d-flex justify-content-start mb-3">
+                        <div className="bg-body p-3 rounded-3 shadow-sm">
+                            <div className="spinner-dots">
+                                <span className="spinner-grow spinner-grow-sm text-primary me-1" role="status"></span>
+                                <span className="spinner-grow spinner-grow-sm text-primary me-1" role="status" style={{animationDelay: '0.2s'}}></span>
+                                <span className="spinner-grow spinner-grow-sm text-primary" role="status" style={{animationDelay: '0.4s'}}></span>
                             </div>
-                </div>
-            ))}
-            {isAiLoading && (
-                <div className="d-flex justify-content-start mb-3">
-                    <div className="bg-body p-3 rounded-3 shadow-sm">
-                        <div className="spinner-dots">
-                            <span className="spinner-grow spinner-grow-sm text-primary me-1" role="status"></span>
-                            <span className="spinner-grow spinner-grow-sm text-primary me-1" role="status" style={{animationDelay: '0.2s'}}></span>
-                            <span className="spinner-grow spinner-grow-sm text-primary" role="status" style={{animationDelay: '0.4s'}}></span>
                         </div>
                     </div>
-                </div>
-            )}
-            <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area */}
-        <div className="p-3 bg-body border-top">
-            <form onSubmit={handleSubmit} className="d-flex gap-2">
-                {recognition && (
-                    <button 
-                        type="button" 
-                        className={`btn ${isListening ? 'btn-danger pulse-red' : 'btn-outline-secondary'}`}
-                        onClick={toggleVoiceInput}
-                        title={isListening ? "Stop listening" : "Voice input"}
-                    >
-                        {isListening ? '⏹️' : '🎤'}
-                    </button>
                 )}
-                <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="Ask your vault..." 
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    disabled={isAiLoading}
-                />
-                <button type="submit" className="btn btn-primary" disabled={isAiLoading || !input.trim()}>
-                    ➤
-                </button>
-            </form>
-            {chatHistory.length > 0 && (
-                <div className="text-center mt-2">
-                    <button className="btn btn-link btn-sm text-muted p-0" onClick={clearHistory} style={{fontSize: '0.8rem'}}>Clear Chat</button>
-                </div>
-            )}
-        </div>
-      </div>
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="p-3 bg-body border-top">
+                <form onSubmit={handleSubmit} className="d-flex gap-2">
+                    {recognition && (
+                        <motion.button 
+                            whileTap={{ scale: 0.9 }}
+                            type="button" 
+                            className={`btn ${isListening ? 'btn-danger pulse-red' : 'btn-outline-secondary'}`}
+                            onClick={toggleVoiceInput}
+                            title={isListening ? "Stop listening" : "Voice input"}
+                        >
+                            {isListening ? '⏹️' : '🎤'}
+                        </motion.button>
+                    )}
+                    <input 
+                        type="text" 
+                        className="form-control" 
+                        placeholder="Ask your vault..." 
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        disabled={isAiLoading}
+                    />
+                    <motion.button 
+                      whileTap={{ scale: 0.9 }}
+                      type="submit" 
+                      className="btn btn-primary" 
+                      disabled={isAiLoading || !input.trim()}
+                    >
+                        ➤
+                    </motion.button>
+                </form>
+                {chatHistory.length > 0 && (
+                    <div className="text-center mt-2">
+                        <button className="btn btn-link btn-sm text-muted p-0" onClick={clearHistory} style={{fontSize: '0.8rem'}}>Clear Chat</button>
+                    </div>
+                )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

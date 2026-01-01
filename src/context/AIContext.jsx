@@ -445,6 +445,15 @@ export const AIProvider = ({ children }) => {
                         responseText = `Created a new daily note for ${today}. Happy journaling! ✍️`;
                     }
                  }
+                 if (result.action === 'search_vault' && result.params) {
+                    setFilters({ search: result.params, showArchived: false, showTrashed: false, type: 'all', tag: null });
+                    responseText = `Searching vault for: "${result.params}" 🔍`;
+                 }
+                 if (result.action === 'filter_tag' && result.params) {
+                    const cleanTag = result.params.replace('#', '');
+                    setFilters({ tag: cleanTag, search: '', showArchived: false, showTrashed: false });
+                    responseText = `Filtering notes with tag: #${cleanTag} 🏷️`;
+                 }
                  handleAction(result.action);
              }
 
