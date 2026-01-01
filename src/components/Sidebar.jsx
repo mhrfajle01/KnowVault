@@ -82,7 +82,7 @@ const Sidebar = () => {
                     <motion.button
                         whileTap={{ scale: 0.98 }}
                         className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${isActiveView ? 'btn-primary shadow-sm' : 'btn-light'}`}
-                        onClick={() => handleFilterChange({ showArchived: false, showTrashed: false })}
+                        onClick={() => handleFilterChange({ showArchived: false, showTrashed: false, search: '', tag: null, type: 'all' })}
                     >
                         <div className="d-flex align-items-center">
                             <span className="me-2">{isActiveView ? '📥' : '📥'}</span>
@@ -98,7 +98,7 @@ const Sidebar = () => {
                     <motion.button
                         whileTap={{ scale: 0.98 }}
                         className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.showArchived ? 'btn-primary shadow-sm' : 'btn-light'}`}
-                        onClick={() => handleFilterChange({ showArchived: true, showTrashed: false })}
+                        onClick={() => handleFilterChange({ showArchived: true, showTrashed: false, search: '', tag: null, type: 'all' })}
                     >
                         <div className="d-flex align-items-center">
                             <span className="me-2">📁</span>
@@ -114,7 +114,7 @@ const Sidebar = () => {
                     <motion.button
                         whileTap={{ scale: 0.98 }}
                         className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.showTrashed ? 'btn-danger text-white shadow-sm' : 'btn-light'}`}
-                        onClick={() => handleFilterChange({ showTrashed: true, showArchived: false })}
+                        onClick={() => handleFilterChange({ showTrashed: true, showArchived: false, search: '', tag: null, type: 'all' })}
                     >
                         <div className="d-flex align-items-center">
                             <span className="me-2">🗑️</span>
@@ -180,7 +180,7 @@ const Sidebar = () => {
                             key={type.id}
                             whileTap={{ scale: 0.98 }}
                             className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.type === type.id ? 'btn-primary shadow-sm' : 'btn-light'}`}
-                            onClick={() => handleFilterChange({ type: type.id })}
+                            onClick={() => handleFilterChange({ type: type.id, search: '' })}
                         >
                             <div className="d-flex align-items-center">
                                 <span className="me-2">{type.icon}</span>
@@ -233,13 +233,14 @@ const Sidebar = () => {
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ delay: i * 0.03 }}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className={`btn btn-sm rounded-pill px-3 ${filters.tag === tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
-                                onClick={() => handleFilterChange({ tag })}
-                            >
-                                #{tag}
-                            </motion.button>
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        className={`btn btn-sm rounded-pill px-3 ${filters.tag === tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
+                                                        onClick={() => handleFilterChange({ tag, search: '' })}
+                                                    >
+                                                        #{tag}
+                                                    </motion.button>
+                                
                         ))
                     )}
                     {!loading && allTags.length === 0 && <p className="text-muted small italic ms-1">No tags yet.</p>}
