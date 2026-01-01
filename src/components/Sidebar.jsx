@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
 import { useUI } from '../context/UIContext';
-import { slideIn } from '../utils/animations';
+import { slideIn, skeleton } from '../utils/animations';
 
 const Sidebar = () => {
   const { state, setFilters, allTags, emptyTrash, factoryReset, triggerScroll } = useVault();
   const { playAiSound } = useAI();
   const { showModal } = useUI();
-  const { filters, items } = state;
+  const { filters, items, loading } = state;
 
   const counts = useMemo(() => {
     return {
@@ -64,7 +64,11 @@ const Sidebar = () => {
                     <span className="me-2">{isActiveView ? '📥' : '📥'}</span>
                     <span>Active Vault</span>
                 </div>
-                <span className={`badge rounded-pill ${isActiveView ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts.active}</span>
+                {loading ? (
+                    <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
+                ) : (
+                    <span className={`badge rounded-pill ${isActiveView ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts.active}</span>
+                )}
             </motion.button>
 
             <motion.button
@@ -76,7 +80,11 @@ const Sidebar = () => {
                     <span className="me-2">📁</span>
                     <span>Archive</span>
                 </div>
-                <span className={`badge rounded-pill ${filters.showArchived ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts.archived}</span>
+                {loading ? (
+                    <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
+                ) : (
+                    <span className={`badge rounded-pill ${filters.showArchived ? 'bg-white text-primary' : 'bg-secondary-subtle text-muted'}`}>{counts.archived}</span>
+                )}
             </motion.button>
 
             <motion.button
@@ -88,7 +96,11 @@ const Sidebar = () => {
                     <span className="me-2">🗑️</span>
                     <span>Trash</span>
                 </div>
-                <span className={`badge rounded-pill ${filters.showTrashed ? 'bg-white text-danger' : 'bg-secondary-subtle text-muted'}`}>{counts.trashed}</span>
+                {loading ? (
+                    <motion.span variants={skeleton} initial="initial" animate="animate" className="badge rounded-pill bg-secondary-subtle" style={{ width: '24px', height: '18px' }}></motion.span>
+                ) : (
+                    <span className={`badge rounded-pill ${filters.showTrashed ? 'bg-white text-danger' : 'bg-secondary-subtle text-muted'}`}>{counts.trashed}</span>
+                )}
             </motion.button>
         </div>
       </div>
@@ -153,21 +165,28 @@ const Sidebar = () => {
             >
                 All Tags
             </motion.button>
-            {allTags.map((tag, i) => (
-                <motion.button
-                    key={tag}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: i * 0.03 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`btn btn-sm rounded-pill px-3 ${filters.tag === tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
-                    onClick={() => handleFilterChange({ tag })}
-                >
-                    #{tag}
-                </motion.button>
-            ))}
-            {allTags.length === 0 && <p className="text-muted small italic ms-1">No tags yet.</p>}
+            {loading ? (
+                <>
+                    <motion.span variants={skeleton} initial="initial" animate="animate" className="btn btn-sm rounded-pill px-4 bg-secondary-subtle" style={{ width: '60px', height: '30px' }}></motion.span>
+                    <motion.span variants={skeleton} initial="initial" animate="animate" className="btn btn-sm rounded-pill px-4 bg-secondary-subtle" style={{ width: '80px', height: '30px' }}></motion.span>
+                </>
+            ) : (
+                allTags.map((tag, i) => (
+                    <motion.button
+                        key={tag}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: i * 0.03 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`btn btn-sm rounded-pill px-3 ${filters.tag === tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
+                        onClick={() => handleFilterChange({ tag })}
+                    >
+                        #{tag}
+                    </motion.button>
+                ))
+            )}
+            {!loading && allTags.length === 0 && <p className="text-muted small italic ms-1">No tags yet.</p>}
         </div>
       </div>
 

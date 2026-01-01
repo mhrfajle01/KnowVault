@@ -14,6 +14,8 @@ export const UIProvider = ({ children }) => {
     onCancel: null
   });
 
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   const showModal = ({ title, message, content, item, type = 'info', onConfirm, onCancel }) => {
     setModalConfig({
       isOpen: true,
@@ -32,7 +34,7 @@ export const UIProvider = ({ children }) => {
   };
 
   return (
-    <UIContext.Provider value={{ modalConfig, showModal, closeModal }}>
+    <UIContext.Provider value={{ modalConfig, showModal, closeModal, isSearchFocused, setIsSearchFocused }}>
       {children}
     </UIContext.Provider>
   );

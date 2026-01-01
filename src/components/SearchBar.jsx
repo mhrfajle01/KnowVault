@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
+import { useUI } from '../context/UIContext';
 
 const SearchBar = () => {
   const { state, setFilters, setSort, triggerScroll, filteredItems } = useVault();
+  const { isSearchFocused, setIsSearchFocused } = useUI();
   const { filters, sortBy } = state;
   const [isSearching, setIsSearching] = useState(false);
   const [hasResults, setHasResults] = useState(false);
@@ -53,8 +55,8 @@ const SearchBar = () => {
       <div className="row g-3 align-items-center">
         <div className="col-lg-8 col-md-7">
           <motion.div 
-            animate={isSearching ? { scale: 1.01 } : { scale: 1 }}
-            className={`input-group shadow-sm rounded-pill overflow-hidden transition-all ${isSearching ? 'ring-primary' : ''}`} 
+            animate={isSearchFocused ? { scale: 1.05, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' } : (isSearching ? { scale: 1.01 } : { scale: 1 })}
+            className={`input-group shadow-sm rounded-pill overflow-hidden transition-all ${isSearchFocused || isSearching ? 'ring-primary' : ''}`} 
             style={{ border: '2px solid transparent', background: 'var(--bs-tertiary-bg)' }}
           >
             <span className={`input-group-text bg-transparent border-0 ps-3 ${isSearching ? 'animate-pulse text-primary' : ''}`}>
@@ -67,6 +69,7 @@ const SearchBar = () => {
               value={filters.search}
               onChange={(e) => setFilters({ search: e.target.value })}
               onKeyDown={handleKeyDown}
+              onFocus={() => setIsSearchFocused(true)}
             />
             <AnimatePresence>
                 {filters.search && (

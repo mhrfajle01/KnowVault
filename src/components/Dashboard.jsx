@@ -2,13 +2,15 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
+import { skeleton } from '../utils/animations';
 
 const Dashboard = ({ onViewChange }) => {
   const { state, allTags, setFilters, triggerScroll } = useVault();
   const { playAiSound } = useAI();
-  const { items } = state;
+  const { items, loading } = state;
 
   const stats = useMemo(() => {
+    if (loading) return null;
     const typeCount = { note: 0, link: 0, code: 0 };
     items.forEach(item => {
       if (typeCount[item.type] !== undefined) typeCount[item.type]++;
@@ -64,6 +66,31 @@ const Dashboard = ({ onViewChange }) => {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
   };
+
+  if (loading) {
+    return (
+      <div className="container pb-5">
+        <motion.h3 variants={skeleton} initial="initial" animate="animate" className="mb-4 bg-secondary opacity-25 rounded" style={{ height: '32px', width: '200px' }}></motion.h3>
+        <div className="row g-4 mb-4">
+            <div className="col-12 col-md-4">
+                <motion.div variants={skeleton} initial="initial" animate="animate" className="card border-0 shadow-sm" style={{ height: '160px', background: 'var(--bs-tertiary-bg)' }}></motion.div>
+            </div>
+            <div className="col-12 col-md-8">
+                <motion.div variants={skeleton} initial="initial" animate="animate" className="card border-0 shadow-sm" style={{ height: '160px', background: 'var(--bs-tertiary-bg)' }}></motion.div>
+            </div>
+        </div>
+        <motion.div variants={skeleton} initial="initial" animate="animate" className="card border-0 shadow-sm mb-4" style={{ height: '120px', background: 'var(--bs-tertiary-bg)' }}></motion.div>
+        <div className="row g-4">
+            <div className="col-12 col-md-6">
+                <motion.div variants={skeleton} initial="initial" animate="animate" className="card border-0 shadow-sm" style={{ height: '300px', background: 'var(--bs-tertiary-bg)' }}></motion.div>
+            </div>
+            <div className="col-12 col-md-6">
+                <motion.div variants={skeleton} initial="initial" animate="animate" className="card border-0 shadow-sm" style={{ height: '300px', background: 'var(--bs-tertiary-bg)' }}></motion.div>
+            </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div 

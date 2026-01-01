@@ -76,3 +76,53 @@ mark {
 .transition-all {
     transition: all 0.3s ease;
 }
+
+/* Sliding Pill Navigation */
+.nav-pills {
+    background: var(--bs-tertiary-bg);
+    padding: 4px;
+    border-radius: 50px;
+    position: relative;
+}
+
+.nav-pills .nav-link {
+    border-radius: 50px;
+    z-index: 1;
+    position: relative;
+    color: var(--bs-body-color);
+    border: none;
+    padding: 8px 24px;
+    font-weight: 600;
+}
+
+.nav-pills .nav-link.active {
+    background: transparent;
+    color: white;
+}
+
+.nav-pill-background {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    background: var(--bs-primary);
+    border-radius: 50px;
+    z-index: 0;
+}
+
+/* Search Backdrop */
+.search-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1040;
+}
+
+.search-section-focused {
+    position: relative;
+    z-index: 1041;
+}
