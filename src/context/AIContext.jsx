@@ -345,16 +345,30 @@ export const AIProvider = ({ children }) => {
     setIsAiLoading(true);
     const contextItems = getRelevantContext(userMessage);
     
-    let fullPrompt = "System: You are a helpful assistant for a Personal Knowledge Vault. Use the context below to answer.\n\n";
-    if (contextItems.length > 0) {
-        fullPrompt += "--- VAULT CONTEXT ---\n";
-        contextItems.forEach(item => {
-            fullPrompt += `Title: ${item.title}\nContent: ${item.content}\nTags: ${item.tags.join(', ')}\n\n`;
-        });
-    } else {
-        fullPrompt += "No relevant notes found. Answer from general knowledge.\n";
-    }
-    fullPrompt += `\nUser Question: ${userMessage}`;
+    let fullPrompt = `System: You are an intelligent assistant for KnowVault. 
+    You can perform actions by including a JSON block at the end of your response like this: 
+    [ACTION: {"type": "action_name", "params": "optional_value"}]
+    
+    Available Actions:
+    - create_note: Open editor for new note
+    - create_code: Open editor for new code snippet
+    - create_link: Open editor for new link
+    - view_trash: Switch to trash view
+    - view_dashboard: Switch to dashboard
+    - view_vault: Switch to active vault
+    - filter_notes: Show only notes
+    - filter_links: Show only links
+    - filter_code: Show only code
+    - clear_filters: Reset all filters
+    - toggle_theme: Switch dark/light mode
+    - export_data: Download backup
+    - search_vault: Use "params" for the search query
+    - filter_tag: Use "params" for the tag name
+    
+    VAULT CONTEXT:
+    ${contextItems.length > 0 ? contextItems.map(item => `Title: ${item.title}\nContent: ${item.content}\nTags: ${item.tags.join(', ')}`).join('\n---\n') : 'No relevant notes found.'}
+    
+    User Question: ${userMessage}`;
 
     const newHistory = [...chatHistory, { role: 'user', text: userMessage }];
     setChatHistory(newHistory);
@@ -493,6 +507,24 @@ export const AIProvider = ({ children }) => {
         const data = await response.json();
         responseText = data.choices?.[0]?.message?.content;
 
+        // Parse Action
+        const actionMatch = responseText.match(/\[ACTION:\s*({.*?})\]/);
+        if (actionMatch) {
+            try {
+                const actionData = JSON.parse(actionMatch[1]);
+                if (actionData.type === 'search_vault' && actionData.params) {
+                    setFilters({ search: actionData.params, showArchived: false, showTrashed: false, type: 'all', tag: null });
+                } else if (actionData.type === 'filter_tag' && actionData.params) {
+                    setFilters({ tag: actionData.params.replace('#', ''), search: '', showArchived: false, showTrashed: false });
+                } else {
+                    handleAction(actionData.type);
+                }
+                responseText = responseText.replace(actionMatch[0], '').trim();
+            } catch (e) {
+                console.error("Failed to parse AI action JSON", e);
+            }
+        }
+
       } else {
         // DeepSeek via OpenRouter
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -519,6 +551,24 @@ export const AIProvider = ({ children }) => {
         }
         const data = await response.json();
         responseText = data.choices?.[0]?.message?.content;
+
+        // Parse Action
+        const actionMatch = responseText.match(/\[ACTION:\s*({.*?})\]/);
+        if (actionMatch) {
+            try {
+                const actionData = JSON.parse(actionMatch[1]);
+                if (actionData.type === 'search_vault' && actionData.params) {
+                    setFilters({ search: actionData.params, showArchived: false, showTrashed: false, type: 'all', tag: null });
+                } else if (actionData.type === 'filter_tag' && actionData.params) {
+                    setFilters({ tag: actionData.params.replace('#', ''), search: '', showArchived: false, showTrashed: false });
+                } else {
+                    handleAction(actionData.type);
+                }
+                responseText = responseText.replace(actionMatch[0], '').trim();
+            } catch (e) {
+                console.error("Failed to parse AI action JSON", e);
+            }
+        }
       }
 
       setChatHistory(prev => [...prev, { role: 'model', text: responseText || "No response generated." }]);
