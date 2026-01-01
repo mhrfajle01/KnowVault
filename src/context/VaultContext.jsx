@@ -227,56 +227,67 @@ export const VaultProvider = ({ children }) => {
     dispatch({ type: 'TRIGGER_SCROLL', payload: type });
   };
 
-  // Derived Data
-  const allTags = Array.from(new Set(state.items.flatMap(item => item.tags))).sort();
-
-  // 1. Initial filter based on main view (Active, Archive, Trash)
-  let baseItems = state.items.filter(item => {
-    if (state.filters.showTrashed) return item.trashed;
-    if (state.filters.showArchived) return item.archived && !item.trashed;
-    return !item.archived && !item.trashed;
-  });
-
-  // 2. Apply Search if search string exists
-  let searchedItems = baseItems;
-  if (state.filters.search) {
-    const query = state.filters.search.trim();
-    if (query.startsWith('"') && query.endsWith('"') && query.length > 2) {
-      // Exact match
-      const exactTerm = query.slice(1, -1).toLowerCase();
-      searchedItems = baseItems.filter(item => 
-        item.title.toLowerCase().includes(exactTerm) || 
-        item.content.toLowerCase().includes(exactTerm) ||
-        item.tags.some(t => t.toLowerCase().includes(exactTerm))
-      );
-    } else {
-      // Fuzzy match using the already filtered baseItems
-      const searchFuse = new Fuse(baseItems, {
-        keys: ['title', 'content', 'tags'],
-        threshold: 0.3,
-        ignoreLocation: true
-      });
-      searchedItems = searchFuse.search(state.filters.search).map(result => result.item);
-    }
-  }
-
-  // 3. Apply Tag and Type filters
-  const filteredItems = searchedItems
-    .filter(item => {
-      const matchesTag = !state.filters.tag || item.tags.includes(state.filters.tag);
-      const matchesType = state.filters.type === 'all' || item.type === state.filters.type;
-      return matchesTag && matchesType;
-    })
-    .sort((a, b) => {
-      // Always put pinned items first
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-
-      if (state.sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
-      if (state.sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-      if (state.sortBy === 'updated') return new Date(b.updatedAt) - new Date(a.updatedAt);
-      return 0;
+  // Derived Data with useMemo for stability and performance
+  const allTags = React.useMemo(() => {
+    const tags = new Set();
+    state.items.forEach(item => {
+        if (item.tags && Array.isArray(item.tags)) {
+            item.tags.forEach(t => tags.add(t));
+        }
     });
+    return Array.from(tags).sort();
+  }, [state.items]);
+
+  const filteredItems = React.useMemo(() => {
+    // 1. Initial filter based on main view (Active, Archive, Trash)
+    let baseItems = state.items.filter(item => {
+      if (state.filters.showTrashed) return item.trashed;
+      if (state.filters.showArchived) return item.archived && !item.trashed;
+      return !item.archived && !item.trashed;
+    });
+
+    // 2. Apply Search if search string exists
+    let searchedItems = baseItems;
+    const searchTerm = state.filters.search?.trim();
+    
+    if (searchTerm) {
+      if (searchTerm.startsWith('"') && searchTerm.endsWith('"') && searchTerm.length > 2) {
+        // Exact match
+        const exactTerm = searchTerm.slice(1, -1).toLowerCase();
+        searchedItems = baseItems.filter(item => 
+          (item.title || '').toLowerCase().includes(exactTerm) || 
+          (item.content || '').toLowerCase().includes(exactTerm) ||
+          (item.tags || []).some(t => t.toLowerCase().includes(exactTerm))
+        );
+      } else {
+        // Fuzzy match using the already filtered baseItems
+        const searchFuse = new Fuse(baseItems, {
+          keys: ['title', 'content', 'tags'],
+          threshold: 0.3,
+          ignoreLocation: true
+        });
+        searchedItems = searchFuse.search(searchTerm).map(result => result.item);
+      }
+    }
+
+    // 3. Apply Tag and Type filters
+    return searchedItems
+      .filter(item => {
+        const matchesTag = !state.filters.tag || (item.tags || []).includes(state.filters.tag);
+        const matchesType = state.filters.type === 'all' || item.type === state.filters.type;
+        return matchesTag && matchesType;
+      })
+      .sort((a, b) => {
+        // Always put pinned items first
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+
+        if (state.sortBy === 'newest') return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        if (state.sortBy === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        if (state.sortBy === 'updated') return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+        return 0;
+      });
+  }, [state.items, state.filters, state.sortBy]);
 
   return (
     <VaultContext.Provider value={{ 
