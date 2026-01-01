@@ -26,9 +26,9 @@ const initialState = {
 const vaultReducer = (state, action) => {
   switch (action.type) {
     case 'SET_ITEMS':
-      return { ...state, items: action.payload, loading: false };
+      return { ...state, items: action.payload || [], loading: false };
     case 'ADD_ITEM':
-      return { ...state, items: [action.payload, ...state.items] };
+      return { ...state, items: [action.payload, ...(state.items || [])] };
     case 'UPDATE_ITEM':
       return {
         ...state,
@@ -80,7 +80,7 @@ const vaultReducer = (state, action) => {
     case 'EMPTY_TRASH':
       return { ...state, items: state.items.filter(item => !item.trashed) };
     case 'RESET_VAULT':
-      return { ...initialState, loading: false };
+      return { ...initialState, items: [], loading: false };
     default:
       return state;
   }
@@ -229,21 +229,32 @@ export const VaultProvider = ({ children }) => {
 
   // Derived Data with useMemo for stability and performance
   const allTags = React.useMemo(() => {
+    if (!Array.isArray(state.items)) return [];
     const tags = new Set();
     state.items.forEach(item => {
-        if (item.tags && Array.isArray(item.tags)) {
-            item.tags.forEach(t => tags.add(t));
+        if (item && Array.isArray(item.tags)) {
+            item.tags.forEach(t => {
+                if (t) tags.add(t);
+            });
         }
     });
     return Array.from(tags).sort();
   }, [state.items]);
 
   const filteredItems = React.useMemo(() => {
+    if (!Array.isArray(state.items)) return [];
+
     // 1. Initial filter based on main view (Active, Archive, Trash)
     let baseItems = state.items.filter(item => {
-      if (state.filters.showTrashed) return item.trashed;
-      if (state.filters.showArchived) return item.archived && !item.trashed;
-      return !item.archived && !item.trashed;
+      if (!item) return false;
+      const isTrashed = !!item.trashed;
+      const isArchived = !!item.archived;
+
+      if (state.filters.showTrashed) return isTrashed;
+      if (state.filters.showArchived) return isArchived && !isTrashed;
+      
+      // Default: Active view (not archived AND not trashed)
+      return !isArchived && !isTrashed;
     });
 
     // 2. Apply Search if search string exists
@@ -273,18 +284,23 @@ export const VaultProvider = ({ children }) => {
     // 3. Apply Tag and Type filters
     return searchedItems
       .filter(item => {
-        const matchesTag = !state.filters.tag || (item.tags || []).includes(state.filters.tag);
+        if (!item) return false;
+        const itemTags = Array.isArray(item.tags) ? item.tags : [];
+        const matchesTag = !state.filters.tag || itemTags.includes(state.filters.tag);
         const matchesType = state.filters.type === 'all' || item.type === state.filters.type;
         return matchesTag && matchesType;
       })
       .sort((a, b) => {
         // Always put pinned items first
-        if (a.pinned && !b.pinned) return -1;
-        if (!a.pinned && b.pinned) return 1;
+        if (!!a.pinned && !b.pinned) return -1;
+        if (!a.pinned && !!b.pinned) return 1;
 
-        if (state.sortBy === 'newest') return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-        if (state.sortBy === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-        if (state.sortBy === 'updated') return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+        const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+
+        if (state.sortBy === 'newest') return dateB - dateA;
+        if (state.sortBy === 'oldest') return dateA - dateB;
+        if (state.sortBy === 'updated') return dateB - dateA;
         return 0;
       });
   }, [state.items, state.filters, state.sortBy]);
