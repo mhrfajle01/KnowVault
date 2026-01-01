@@ -22,14 +22,15 @@ const Sidebar = () => {
   };
 
   const counts = useMemo(() => {
+    const safeItems = Array.isArray(items) ? items : [];
     return {
-      active: items.filter(i => !i.archived && !i.trashed).length,
-      archived: items.filter(i => i.archived && !i.trashed).length,
-      trashed: items.filter(i => i.trashed).length,
-      note: items.filter(i => i.type === 'note' && !i.trashed).length,
-      link: items.filter(i => i.type === 'link' && !i.trashed).length,
-      code: items.filter(i => i.type === 'code' && !i.trashed).length,
-      all: items.filter(i => !i.trashed).length
+      active: safeItems.filter(i => !i.archived && !i.trashed).length,
+      archived: safeItems.filter(i => i.archived && !i.trashed).length,
+      trashed: safeItems.filter(i => i.trashed).length,
+      note: safeItems.filter(i => i.type === 'note' && !i.trashed).length,
+      link: safeItems.filter(i => i.type === 'link' && !i.trashed).length,
+      code: safeItems.filter(i => i.type === 'code' && !i.trashed).length,
+      all: safeItems.filter(i => !i.trashed).length
     };
   }, [items]);
 
@@ -180,7 +181,7 @@ const Sidebar = () => {
                             key={type.id}
                             whileTap={{ scale: 0.98 }}
                             className={`btn btn-sm text-start d-flex justify-content-between align-items-center px-3 py-2 rounded-3 border-0 ${filters.type === type.id ? 'btn-primary shadow-sm' : 'btn-light'}`}
-                            onClick={() => handleFilterChange({ type: type.id, search: '' })}
+                            onClick={() => handleFilterChange({ type: type.id, search: '', tag: null })}
                         >
                             <div className="d-flex align-items-center">
                                 <span className="me-2">{type.icon}</span>
@@ -233,15 +234,14 @@ const Sidebar = () => {
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ delay: i * 0.03 }}
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        className={`btn btn-sm rounded-pill px-3 ${filters.tag === tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
-                                                        onClick={() => handleFilterChange({ tag, search: '' })}
-                                                    >
-                                                        #{tag}
-                                                    </motion.button>
-                                
-                        ))
+                                                                                whileHover={{ scale: 1.05 }}
+                                                                                whileTap={{ scale: 0.95 }}
+                                                                                className={`btn btn-sm rounded-pill px-3 ${filters.tag === tag ? 'btn-primary shadow-sm' : 'btn-light border text-muted'}`}
+                                                                                onClick={() => handleFilterChange({ tag, search: '', type: 'all' })}
+                                                                            >
+                                                                                #{tag}
+                                                                            </motion.button>
+                                                                                ))
                     )}
                     {!loading && allTags.length === 0 && <p className="text-muted small italic ms-1">No tags yet.</p>}
                 </motion.div>

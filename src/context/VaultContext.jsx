@@ -93,10 +93,10 @@ export const VaultProvider = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Add a small artificial delay to make skeleton loaders visible/interactive
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Reduced delay for better snappiness while still showing skeleton
+        await new Promise(resolve => setTimeout(resolve, 300));
         const items = await dbUtils.getAll();
-        dispatch({ type: 'SET_ITEMS', payload: items });
+        dispatch({ type: 'SET_ITEMS', payload: Array.isArray(items) ? items : [] });
       } catch (err) {
         console.error("Failed to load items:", err);
         dispatch({ type: 'SET_ERROR', payload: "Failed to load database." });
@@ -242,66 +242,54 @@ export const VaultProvider = ({ children }) => {
   }, [state.items]);
 
   const filteredItems = React.useMemo(() => {
-    if (!Array.isArray(state.items)) return [];
+    const allItems = Array.isArray(state.items) ? state.items : [];
 
-    // 1. Initial filter based on main view (Active, Archive, Trash)
-    let baseItems = state.items.filter(item => {
+    // 1. Filter by Primary Bucket (Active, Archive, or Trash)
+    // This is the most important step to prevent "blanks"
+    const bucketItems = allItems.filter(item => {
       if (!item) return false;
       const isTrashed = !!item.trashed;
       const isArchived = !!item.archived;
 
       if (state.filters.showTrashed) return isTrashed;
       if (state.filters.showArchived) return isArchived && !isTrashed;
-      
-      // Default: Active view (not archived AND not trashed)
       return !isArchived && !isTrashed;
     });
 
-    // 2. Apply Search if search string exists
-    let searchedItems = baseItems;
-    const searchTerm = state.filters.search?.trim();
+    // 2. Apply Search
+    let results = bucketItems;
+    const searchTerm = state.filters.search?.trim().toLowerCase();
     
     if (searchTerm) {
       if (searchTerm.startsWith('"') && searchTerm.endsWith('"') && searchTerm.length > 2) {
-        // Exact match
-        const exactTerm = searchTerm.slice(1, -1).toLowerCase();
-        searchedItems = baseItems.filter(item => 
-          (item.title || '').toLowerCase().includes(exactTerm) || 
-          (item.content || '').toLowerCase().includes(exactTerm) ||
-          (item.tags || []).some(t => t.toLowerCase().includes(exactTerm))
+        const exact = searchTerm.slice(1, -1);
+        results = bucketItems.filter(item => 
+          (item.title || '').toLowerCase().includes(exact) || 
+          (item.content || '').toLowerCase().includes(exact) ||
+          (item.tags || []).some(t => t.toLowerCase().includes(exact))
         );
       } else {
-        // Fuzzy match using the already filtered baseItems
-        const searchFuse = new Fuse(baseItems, {
+        const fuse = new Fuse(bucketItems, {
           keys: ['title', 'content', 'tags'],
-          threshold: 0.3,
-          ignoreLocation: true
+          threshold: 0.3
         });
-        searchedItems = searchFuse.search(searchTerm).map(result => result.item);
+        results = fuse.search(searchTerm).map(r => r.item);
       }
     }
 
-    // 3. Apply Tag and Type filters
-    return searchedItems
+    // 3. Apply Category Filters (Type and Tag)
+    return results
       .filter(item => {
-        if (!item) return false;
-        const itemTags = Array.isArray(item.tags) ? item.tags : [];
-        const matchesTag = !state.filters.tag || itemTags.includes(state.filters.tag);
+        const matchesTag = !state.filters.tag || (item.tags || []).includes(state.filters.tag);
         const matchesType = state.filters.type === 'all' || item.type === state.filters.type;
         return matchesTag && matchesType;
       })
       .sort((a, b) => {
-        // Always put pinned items first
         if (!!a.pinned && !b.pinned) return -1;
         if (!a.pinned && !!b.pinned) return 1;
-
         const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
         const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-
-        if (state.sortBy === 'newest') return dateB - dateA;
-        if (state.sortBy === 'oldest') return dateA - dateB;
-        if (state.sortBy === 'updated') return dateB - dateA;
-        return 0;
+        return state.sortBy === 'oldest' ? dateA - dateB : dateB - dateA;
       });
   }, [state.items, state.filters, state.sortBy]);
 
