@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 import { useUI } from '../context/UIContext';
+import { rotate } from '../utils/animations';
 
 const SearchBar = () => {
   const { state, setFilters, setSort, triggerScroll, filteredItems } = useVault();
@@ -61,8 +62,15 @@ const SearchBar = () => {
             className={`input-group shadow-sm rounded-pill overflow-hidden transition-all ${isSearchFocused || isSearching ? 'ring-primary' : ''}`} 
             style={{ border: '2px solid transparent', background: 'var(--bs-tertiary-bg)' }}
           >
-            <span className={`input-group-text bg-transparent border-0 ps-3 ${isSearching ? 'animate-pulse text-primary' : ''}`}>
-              {isSearching ? '⏳' : '🔍'}
+            <span className={`input-group-text bg-transparent border-0 ps-3 ${isSearching ? 'text-primary' : ''}`}>
+              {isSearching ? (
+                <motion.span 
+                    variants={rotate}
+                    animate="animate"
+                    className="d-inline-block border border-2 border-primary border-top-0 rounded-circle"
+                    style={{ width: '16px', height: '16px' }}
+                />
+              ) : '🔍'}
             </span>
             <input
               type="text"

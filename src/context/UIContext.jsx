@@ -11,12 +11,13 @@ export const UIProvider = ({ children }) => {
     item: null,
     type: 'info', // info, confirm, danger, read
     onConfirm: null,
-    onCancel: null
+    onCancel: null,
+    isLoading: false
   });
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  const showModal = ({ title, message, content, item, type = 'info', onConfirm, onCancel }) => {
+  const showModal = ({ title, message, content, item, type = 'info', onConfirm, onCancel, isLoading = false }) => {
     setModalConfig({
       isOpen: true,
       title,
@@ -25,16 +26,21 @@ export const UIProvider = ({ children }) => {
       item,
       type,
       onConfirm,
-      onCancel
+      onCancel,
+      isLoading
     });
   };
 
+  const setModalLoading = (isLoading) => {
+    setModalConfig(prev => ({ ...prev, isLoading }));
+  };
+
   const closeModal = () => {
-    setModalConfig(prev => ({ ...prev, isOpen: false }));
+    setModalConfig(prev => ({ ...prev, isOpen: false, isLoading: false }));
   };
 
   return (
-    <UIContext.Provider value={{ modalConfig, showModal, closeModal, isSearchFocused, setIsSearchFocused }}>
+    <UIContext.Provider value={{ modalConfig, showModal, closeModal, setModalLoading, isSearchFocused, setIsSearchFocused }}>
       {children}
     </UIContext.Provider>
   );

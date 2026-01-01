@@ -6,7 +6,7 @@ import 'highlight.js/styles/github.css'; // Light theme for code
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
 import { useUI } from '../context/UIContext';
-import { scaleUp, loadingDots, loadingDot } from '../utils/animations';
+import { scaleUp, loadingDots, loadingDot, rotate } from '../utils/animations';
 
 const NoteEditor = () => {
   const { state, addItem, updateItem, setEditingItem, allTags, setFilters } = useVault();
@@ -289,8 +289,16 @@ const NoteEditor = () => {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className={`badge rounded-pill ${saveStatus === 'saved' ? 'text-bg-success' : saveStatus === 'saving' ? 'text-bg-warning' : 'text-bg-secondary'}`}
+                        className={`badge rounded-pill d-flex align-items-center gap-1 ${saveStatus === 'saved' ? 'text-bg-success' : saveStatus === 'saving' ? 'text-bg-warning' : 'text-bg-secondary'}`}
                     >
+                        {saveStatus === 'saving' && (
+                            <motion.span 
+                                variants={rotate}
+                                animate="animate"
+                                className="d-inline-block border border-2 border-white border-top-0 rounded-circle"
+                                style={{ width: '10px', height: '10px' }}
+                            />
+                        )}
                         {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
                     </motion.span>
                 )}

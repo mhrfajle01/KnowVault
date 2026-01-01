@@ -126,3 +126,14 @@ export const skeleton = {
     }
   }
 };
+
+export const rotate = {
+  animate: {
+    rotate: 360,
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: "linear"
+    }
+  }
+};

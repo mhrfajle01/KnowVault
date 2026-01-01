@@ -5,12 +5,12 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
 import { useUI } from '../context/UIContext';
 import { useVault } from '../context/VaultContext';
-import { scaleUp } from '../utils/animations';
+import { scaleUp, rotate } from '../utils/animations';
 
 const CustomModal = () => {
   const { modalConfig, closeModal } = useUI();
   const { state, setFilters } = useVault();
-  const { isOpen, title, message, content, item, type, onConfirm } = modalConfig;
+  const { isOpen, title, message, content, item, type, onConfirm, isLoading } = modalConfig;
   const { filters } = state;
   const [currentMatch, setCurrentMatch] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
@@ -312,10 +312,19 @@ const CustomModal = () => {
                             Cancel
                         </button>
                         <button 
-                            className="btn px-4 rounded-pill text-white fw-bold shadow-sm"
+                            className="btn px-4 rounded-pill text-white fw-bold shadow-sm d-flex align-items-center gap-2"
                             style={{ background: type === 'danger' ? '#fa5252' : '#228be6' }}
                             onClick={handleConfirm}
+                            disabled={isLoading}
                         >
+                            {isLoading && (
+                                <motion.span 
+                                    variants={rotate}
+                                    animate="animate"
+                                    className="d-inline-block border border-2 border-white border-top-0 rounded-circle"
+                                    style={{ width: '14px', height: '14px' }}
+                                />
+                            )}
                             {type === 'danger' ? 'Yes, Delete' : 'Confirm'}
                         </button>
                     </>
