@@ -12,7 +12,9 @@ const SearchBar = () => {
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
+      setIsSearchFocused(false);
       triggerScroll('match');
+      e.target.blur(); // Also remove keyboard focus
     }
   };
 
