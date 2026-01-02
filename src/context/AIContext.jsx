@@ -330,15 +330,15 @@ export const AIProvider = ({ children }) => {
         
         setChatHistory(prev => [
             ...prev, 
-            { role: 'user', text: userMessage },
-            { role: 'model', text: `🧠 **I've learned something new!**\n\nWhen you say: _"${triggers.join('", "')}"_\nI will reply: _"${response}"_${action ? `\nAnd execute: _${action}_` : ''}` }
+            { id: Date.now() + '-user', role: 'user', text: userMessage },
+            { id: (Date.now() + 1) + '-reply', role: 'model', text: `🧠 **I've learned something new!**\n\nWhen you say: _"${triggers.join('", "')}"_\nI will reply: _"${response}"_${action ? `\nAnd execute: _${action}_` : ''}` }
         ]);
         return;
     }
 
     const cleanKey = apiKey.trim();
     if (provider !== 'local' && !cleanKey) {
-      setChatHistory(prev => [...prev, { role: 'model', text: 'Please set your API Key in settings.' }]);
+      setChatHistory(prev => [...prev, { id: 'error-' + Date.now(), role: 'model', text: 'Please set your API Key in settings.' }]);
       return;
     }
 
@@ -370,7 +370,7 @@ export const AIProvider = ({ children }) => {
     
     User Question: ${userMessage}`;
 
-    const newHistory = [...chatHistory, { role: 'user', text: userMessage }];
+    const newHistory = [...chatHistory, { id: Date.now() + '-user', role: 'user', text: userMessage }];
     setChatHistory(newHistory);
 
     try {
@@ -571,11 +571,11 @@ export const AIProvider = ({ children }) => {
         }
       }
 
-      setChatHistory(prev => [...prev, { role: 'model', text: responseText || "No response generated." }]);
+      setChatHistory(prev => [...prev, { id: Date.now() + '-reply', role: 'model', text: responseText || "No response generated." }]);
     } catch (error) {
       console.error("AI Error:", error);
       let displayMsg = `Error: ${error.message}`;
-      setChatHistory(prev => [...prev, { role: 'model', text: displayMsg }]);
+      setChatHistory(prev => [...prev, { id: Date.now() + '-err', role: 'model', text: displayMsg }]);
     } finally {
       setIsAiLoading(false);
     }

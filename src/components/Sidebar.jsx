@@ -14,6 +14,7 @@ const Sidebar = () => {
     factoryReset, 
     triggerScroll,
     lockVault,
+    logoutVault,
     exportVault,
     importVault,
     viewRecoveryCode,
@@ -367,12 +368,12 @@ const Sidebar = () => {
                     className="d-flex flex-column gap-1"
                 >
                     <motion.button 
-                        whileHover={{ x: 5, backgroundColor: 'rgba(13, 110, 253, 0.05)' }}
-                        className="btn btn-sm text-primary w-100 border-0 text-start d-flex align-items-center gap-2 py-2 rounded-3" 
-                        onClick={lockVault}
+                        whileHover={{ x: 5, backgroundColor: 'rgba(220, 53, 69, 0.05)' }}
+                        className="btn btn-sm text-danger w-100 border-0 text-start d-flex align-items-center gap-2 py-2 rounded-3" 
+                        onClick={logoutVault}
                     >
-                        <span>🔒</span>
-                        <span className="fw-bold small">Lock Vault</span>
+                        <span>🚪</span>
+                        <span className="fw-bold small">Logout</span>
                     </motion.button>
 
                     <motion.button 

@@ -98,6 +98,9 @@ export const VaultProvider = ({ children }) => {
   const [authChecking, setAuthChecking] = useState(true);
   const [isPanicMode, setIsPanicMode] = useState(false);
   
+  // Session Persistence Constants
+  const SESSION_KEY = 'knowvault_session_key';
+
   // Auto-Lock State
   const AUTO_LOCK_TIME = 15 * 60 * 1000; // 15 minutes
   const idleTimerRef = React.useRef(null);
@@ -106,8 +109,14 @@ export const VaultProvider = ({ children }) => {
     setCryptoKey(null);
     setIsLocked(true);
     setIsPanicMode(false);
+    sessionStorage.removeItem(SESSION_KEY);
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
   }, []);
+
+  const logoutVault = React.useCallback(() => {
+    lockVault();
+    // Force a small delay or state change to ensure UI updates if needed
+  }, [lockVault]);
 
   const resetIdleTimer = React.useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
@@ -136,14 +145,33 @@ export const VaultProvider = ({ children }) => {
   }, [isLocked, resetIdleTimer]);
 
 
-  // 1. Initial Auth Check
+  // 1. Initial Auth Check & Session Restoration
   useEffect(() => {
     const checkAuth = async () => {
       const storedSalt = localStorage.getItem('knowvault_salt');
       if (!storedSalt) {
         setIsSetupMode(true);
+      } else {
+        // Try to restore session
+        const savedSession = sessionStorage.getItem(SESSION_KEY);
+        if (savedSession) {
+            try {
+                const rawKey = base64ToBuffer(savedSession);
+                const key = await cryptoUtils.importKey(rawKey);
+                
+                // Verify session key with verifier
+                const verifierStr = localStorage.getItem('knowvault_verifier');
+                if (verifierStr) {
+                    await cryptoUtils.decrypt(JSON.parse(verifierStr), key);
+                    setCryptoKey(key);
+                    setIsLocked(false);
+                }
+            } catch (e) {
+                console.error("Session restoration failed:", e);
+                sessionStorage.removeItem(SESSION_KEY);
+            }
+        }
       }
-      // If salt exists, we stay locked until password is provided
       setAuthChecking(false);
     };
     checkAuth();
@@ -186,16 +214,16 @@ export const VaultProvider = ({ children }) => {
         const recoveryKey = await cryptoUtils.deriveKey(recoveryCode, salt);
         const rawMasterKey = await cryptoUtils.exportKey(key);
         const rawKeyB64 = bufferToBase64(rawMasterKey);
-        const recoveryBlob = await cryptoUtils.encrypt({ masterKey: rawKeyB64 }, recoveryKey);
-        localStorage.setItem('knowvault_recovery_blob', JSON.stringify(recoveryBlob));
+        localStorage.setItem('knowvault_recovery_blob', JSON.stringify(await cryptoUtils.encrypt({ masterKey: rawKeyB64 }, recoveryKey)));
         
-        // Save recovery code encrypted by master key (to allow viewing later)
-        const encryptedRecoveryCode = await cryptoUtils.encrypt({ code: recoveryCode }, key);
-        localStorage.setItem('knowvault_recovery_code_encrypted', JSON.stringify(encryptedRecoveryCode));
+        // Save recovery code encrypted by master key
+        localStorage.setItem('knowvault_recovery_code_encrypted', JSON.stringify(await cryptoUtils.encrypt({ code: recoveryCode }, key)));
+
+        // Persistent Session Setup
+        sessionStorage.setItem(SESSION_KEY, rawKeyB64);
 
         // Optional Panic Password Setup
         if (panicPasswordInput && panicPasswordInput.length > 0) {
-            console.log("Setting up panic password...");
             const panicKey = await cryptoUtils.deriveKey(panicPasswordInput, salt);
             const panicVerifier = await cryptoUtils.encrypt({ status: 'PANIC' }, panicKey);
             localStorage.setItem('knowvault_panic_verifier', JSON.stringify(panicVerifier));
@@ -214,7 +242,7 @@ export const VaultProvider = ({ children }) => {
         setCryptoKey(key);
         setIsSetupMode(false);
         setIsLocked(false);
-        return recoveryCode; // Return for UI display
+        return recoveryCode;
       } else {
         // UNLOCK
         const saltB64 = localStorage.getItem('knowvault_salt');
@@ -227,7 +255,6 @@ export const VaultProvider = ({ children }) => {
 
         const salt = base64ToBuffer(saltB64);
         
-        // Helper to attempt decryption
         const attempt = async (pwd, vStr) => {
             const k = await cryptoUtils.deriveKey(pwd, salt);
             const v = JSON.parse(vStr);
@@ -235,36 +262,29 @@ export const VaultProvider = ({ children }) => {
             return k;
         };
 
-        // 1. Try Master Password
         try {
-            console.log("Attempting Master Unlock...");
             const key = await attempt(password, verifierStr);
-            console.log("Master Unlock Success");
             setCryptoKey(key);
             setIsPanicMode(false);
             setIsLocked(false);
+            
+            // Save to sessionStorage for persistence
+            const rawKey = await cryptoUtils.exportKey(key);
+            sessionStorage.setItem(SESSION_KEY, bufferToBase64(rawKey));
             return;
         } catch (masterErr) {
-            console.warn("Master Unlock Failed:", masterErr);
-            
-            // 2. Try Panic Password (if exists)
             if (panicVerifierStr) {
                 try {
-                    console.log("Attempting Panic Unlock...");
                     await attempt(password, panicVerifierStr);
-                    console.log("Panic Unlock Success");
-                    
-                    // Panic Mode Active
                     const randomSalt = cryptoUtils.generateSalt();
                     const randomKey = await cryptoUtils.deriveKey('random', randomSalt);
                     setCryptoKey(randomKey);
                     setIsPanicMode(true);
                     setIsLocked(false);
+                    // We don't save panic key to session storage for safety
                     dispatch({ type: 'SET_ITEMS', payload: [] });
                     return;
-                } catch (panicErr) {
-                    console.warn("Panic Unlock Failed:", panicErr);
-                }
+                } catch (panicErr) {}
             }
         }
         
@@ -646,6 +666,7 @@ export const VaultProvider = ({ children }) => {
       filteredItems,
       allTags,
       lockVault,
+      logoutVault,
       exportVault,
       importVault,
       recoverVault,

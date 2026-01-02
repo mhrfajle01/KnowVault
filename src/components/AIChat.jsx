@@ -4,6 +4,37 @@ import ReactMarkdown from 'react-markdown';
 import { useAI } from '../context/AIContext';
 import { itemVariants, loadingDots, loadingDot } from '../utils/animations';
 
+// Typewriter Component for AI messages - Defined outside to prevent re-mounting on parent render
+const Typewriter = React.memo(({ text, onComplete, messagesEndRef }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  
+  useEffect(() => {
+    let index = 0;
+    setDisplayedText('');
+    const timer = setInterval(() => {
+      if (index < text.length) {
+        setDisplayedText((prev) => prev + text.charAt(index));
+        index++;
+      } else {
+        clearInterval(timer);
+        if (onComplete) onComplete();
+      }
+    }, 10);
+    return () => clearInterval(timer);
+  }, [text]);
+
+  // Scroll to bottom when displayed text changes
+  useEffect(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [displayedText, messagesEndRef]);
+
+  return (
+      <div className="markdown-preview mb-0">
+          <ReactMarkdown>{displayedText}</ReactMarkdown>
+      </div>
+  );
+});
+
 const AIChat = () => {
   const { 
     apiKey, 
@@ -20,9 +51,16 @@ const AIChat = () => {
   const [input, setInput] = useState('');
   const [tempKey, setTempKey] = useState(apiKey);
   const [tempProvider, setTempProvider] = useState(provider);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(!apiKey && provider !== 'local');
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Auto-open settings if key is missing when drawer opens
+  useEffect(() => {
+    if (isOpen && !apiKey && provider !== 'local') {
+        setShowSettings(true);
+    }
+  }, [isOpen, apiKey, provider]);
 
   // Speech Recognition Setup
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -70,7 +108,10 @@ const AIChat = () => {
 
   const handleSaveSettings = () => {
     saveConfig(tempKey, tempProvider);
-    setShowSettings(false);
+    // Only close if we have a key or it's local
+    if (tempKey.trim() || tempProvider === 'local') {
+        setShowSettings(false);
+    }
   };
 
   const scrollToBottom = () => {
@@ -80,34 +121,6 @@ const AIChat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [chatHistory, isOpen]);
-
-  // Typewriter Component for AI messages
-  const Typewriter = ({ text, onComplete }) => {
-    const [displayedText, setDisplayedText] = useState('');
-    
-    useEffect(() => {
-      let index = 0;
-      setDisplayedText('');
-      const timer = setInterval(() => {
-        if (index < text.length) {
-          setDisplayedText((prev) => prev + text.charAt(index));
-          index++;
-          // Scroll to bottom while typing to keep latest text in view
-          messagesEndRef.current?.scrollIntoView({ behavior: "auto" }); 
-        } else {
-          clearInterval(timer);
-          if (onComplete) onComplete();
-        }
-      }, 15); // Adjust speed here (lower is faster)
-      return () => clearInterval(timer);
-    }, [text]); // Re-run if text changes (though typically it won't for a saved message)
-
-    return (
-        <div className="markdown-preview mb-0">
-            <ReactMarkdown>{displayedText}</ReactMarkdown>
-        </div>
-    );
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -202,7 +215,7 @@ const AIChat = () => {
             </AnimatePresence>
 
             {/* Messages Area */}
-            <div className="flex-grow-1 overflow-auto p-3 bg-body-tertiary" style={{ scrollBehavior: 'smooth' }}>
+            <div className="flex-grow-1 overflow-auto p-3 bg-body-tertiary">
                 {chatHistory.length === 0 && (
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
@@ -216,9 +229,9 @@ const AIChat = () => {
                 
                 {chatHistory.map((msg, idx) => (
                     <motion.div 
-                      key={idx} 
+                      key={msg.id || idx} 
                       variants={itemVariants}
-                      initial="hidden"
+                      initial={idx === chatHistory.length - 1 ? "hidden" : false}
                       animate="visible"
                       className={`d-flex mb-3 ${msg.role === 'user' ? 'justify-content-end' : 'justify-content-start'}`}
                     >
@@ -226,9 +239,9 @@ const AIChat = () => {
                             {msg.role === 'user' ? (
                                 <div className="mb-0">{msg.text}</div>
                             ) : (
-                                // Only use Typewriter for the very last message if it's from AI to avoid re-typing old messages
+                                // Only use Typewriter for the very last message if it's from AI
                                 idx === chatHistory.length - 1 ? (
-                                    <Typewriter text={msg.text} />
+                                    <Typewriter text={msg.text} messagesEndRef={messagesEndRef} />
                                 ) : (
                                     <div className="markdown-preview mb-0">
                                         <ReactMarkdown>{msg.text}</ReactMarkdown>
