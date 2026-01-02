@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '../context/VaultContext';
 import { useAI } from '../context/AIContext';
@@ -6,19 +6,117 @@ import { useUI } from '../context/UIContext';
 import { slideIn, skeleton, accordion } from '../utils/animations';
 
 const Sidebar = () => {
-  const { state, setFilters, allTags, emptyTrash, factoryReset, triggerScroll } = useVault();
+  const { 
+    state, 
+    setFilters, 
+    allTags, 
+    emptyTrash, 
+    factoryReset, 
+    triggerScroll,
+    lockVault,
+    exportVault,
+    importVault,
+    viewRecoveryCode,
+    generateNewRecoveryCode
+  } = useVault();
   const { playAiSound } = useAI();
   const { showModal } = useUI();
   const { filters, items, loading } = state;
+  const fileInputRef = useRef(null);
 
   const [openSections, setOpenSections] = useState({
     view: true,
     type: true,
-    tags: true
+    tags: true,
+    system: false
   });
 
   const toggleSection = (section) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRecoveryKey = () => {
+      // Use UI modal to ask for password and show key
+      showModal({
+          title: 'Recovery Key Management',
+          message: (
+              <div className="text-start">
+                  <p className="small text-muted mb-3">Your Recovery Key is used to access your vault if you forget your master password. Enter your password to view it.</p>
+                  <div className="mb-3">
+                      <input 
+                        type="password" 
+                        id="recovery-auth-pwd" 
+                        className="form-control" 
+                        placeholder="Master Password" 
+                      />
+                  </div>
+                  <div id="recovery-display-area" className="d-none">
+                      <div className="p-3 bg-light rounded-3 border border-success text-center mb-3">
+                          <code id="recovery-code-text" className="fs-5 fw-bold text-dark"></code>
+                      </div>
+                      <div className="alert alert-info py-2 x-small">
+                          Save this code somewhere safe (offline).
+                      </div>
+                  </div>
+                  <div className="d-grid gap-2">
+                      <button 
+                        className="btn btn-primary" 
+                        id="btn-view-recovery"
+                        onClick={async () => {
+                            const pwd = document.getElementById('recovery-auth-pwd').value;
+                            const btn = document.getElementById('btn-view-recovery');
+                            const area = document.getElementById('recovery-display-area');
+                            const text = document.getElementById('recovery-code-text');
+                            
+                            try {
+                                btn.disabled = true;
+                                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                                const code = await viewRecoveryCode(pwd);
+                                if (code) {
+                                    text.innerText = code;
+                                    area.classList.remove('d-none');
+                                    btn.classList.add('d-none');
+                                    document.getElementById('recovery-auth-pwd').parentElement.classList.add('d-none');
+                                } else {
+                                    // Old vault, need to generate
+                                    if (confirm("No recovery key found for this vault. Would you like to generate a new one now?")) {
+                                        const newCode = await generateNewRecoveryCode(pwd);
+                                        text.innerText = newCode;
+                                        area.classList.remove('d-none');
+                                        btn.classList.add('d-none');
+                                        document.getElementById('recovery-auth-pwd').parentElement.classList.add('d-none');
+                                    }
+                                }
+                            } catch (e) {
+                                alert("Invalid password.");
+                                btn.disabled = false;
+                                btn.innerText = 'View Key';
+                            }
+                        }}
+                      >
+                        View Key
+                      </button>
+                  </div>
+              </div>
+          ),
+          type: 'info',
+          hideConfirm: true
+      });
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        try {
+            await importVault(file);
+        } catch (err) {
+            console.error(err);
+        }
+    }
   };
 
   const counts = useMemo(() => {
@@ -250,14 +348,79 @@ const Sidebar = () => {
       </div>
 
       <div className="mt-4 pt-3 border-top">
-          <motion.button 
-            whileHover={{ x: 5, backgroundColor: 'rgba(220, 53, 69, 0.05)' }}
-            className="btn btn-sm text-danger w-100 border-0 text-start d-flex align-items-center gap-2 py-2 rounded-3" 
-            onClick={handleFactoryReset}
+          <h6 
+              className="text-uppercase text-muted small fw-bold mb-3 d-flex align-items-center cursor-pointer justify-content-between"
+              onClick={() => toggleSection('system')}
           >
-              <span>⚙️</span>
-              <span className="fw-bold small text-uppercase">Factory Reset</span>
-          </motion.button>
+              <div className="d-flex align-items-center">
+                  <span className="me-2">🛠️</span> System
+              </div>
+              <motion.span animate={{ rotate: openSections.system ? 0 : -90 }}>▾</motion.span>
+          </h6>
+          <AnimatePresence>
+            {openSections.system && (
+                <motion.div
+                    variants={accordion}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="d-flex flex-column gap-1"
+                >
+                    <motion.button 
+                        whileHover={{ x: 5, backgroundColor: 'rgba(13, 110, 253, 0.05)' }}
+                        className="btn btn-sm text-primary w-100 border-0 text-start d-flex align-items-center gap-2 py-2 rounded-3" 
+                        onClick={lockVault}
+                    >
+                        <span>🔒</span>
+                        <span className="fw-bold small">Lock Vault</span>
+                    </motion.button>
+
+                    <motion.button 
+                        whileHover={{ x: 5, backgroundColor: 'rgba(102, 16, 242, 0.05)' }}
+                        className="btn btn-sm text-primary w-100 border-0 text-start d-flex align-items-center gap-2 py-2 rounded-3" 
+                        onClick={handleRecoveryKey}
+                        style={{ color: '#6610f2' }}
+                    >
+                        <span>🔑</span>
+                        <span className="fw-bold small">Recovery Key</span>
+                    </motion.button>
+
+                    <motion.button 
+                        whileHover={{ x: 5, backgroundColor: 'rgba(25, 135, 84, 0.05)' }}
+                        className="btn btn-sm text-success w-100 border-0 text-start d-flex align-items-center gap-2 py-2 rounded-3" 
+                        onClick={exportVault}
+                    >
+                        <span>📤</span>
+                        <span className="fw-bold small">Backup Data</span>
+                    </motion.button>
+
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{ display: 'none' }} 
+                        accept=".json"
+                        onChange={handleFileChange}
+                    />
+                    <motion.button 
+                        whileHover={{ x: 5, backgroundColor: 'rgba(255, 193, 7, 0.1)' }}
+                        className="btn btn-sm text-warning w-100 border-0 text-start d-flex align-items-center gap-2 py-2 rounded-3" 
+                        onClick={handleImportClick}
+                    >
+                        <span>📥</span>
+                        <span className="fw-bold small">Restore Backup</span>
+                    </motion.button>
+
+                    <motion.button 
+                        whileHover={{ x: 5, backgroundColor: 'rgba(220, 53, 69, 0.05)' }}
+                        className="btn btn-sm text-danger w-100 border-0 text-start d-flex align-items-center gap-2 py-2 rounded-3" 
+                        onClick={handleFactoryReset}
+                    >
+                        <span>⚙️</span>
+                        <span className="fw-bold small text-uppercase">Factory Reset</span>
+                    </motion.button>
+                </motion.div>
+            )}
+          </AnimatePresence>
       </div>
     </motion.div>
   );

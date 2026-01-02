@@ -81,6 +81,34 @@ const AIChat = () => {
     scrollToBottom();
   }, [chatHistory, isOpen]);
 
+  // Typewriter Component for AI messages
+  const Typewriter = ({ text, onComplete }) => {
+    const [displayedText, setDisplayedText] = useState('');
+    
+    useEffect(() => {
+      let index = 0;
+      setDisplayedText('');
+      const timer = setInterval(() => {
+        if (index < text.length) {
+          setDisplayedText((prev) => prev + text.charAt(index));
+          index++;
+          // Scroll to bottom while typing to keep latest text in view
+          messagesEndRef.current?.scrollIntoView({ behavior: "auto" }); 
+        } else {
+          clearInterval(timer);
+          if (onComplete) onComplete();
+        }
+      }, 15); // Adjust speed here (lower is faster)
+      return () => clearInterval(timer);
+    }, [text]); // Re-run if text changes (though typically it won't for a saved message)
+
+    return (
+        <div className="markdown-preview mb-0">
+            <ReactMarkdown>{displayedText}</ReactMarkdown>
+        </div>
+    );
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -198,9 +226,14 @@ const AIChat = () => {
                             {msg.role === 'user' ? (
                                 <div className="mb-0">{msg.text}</div>
                             ) : (
-                                <div className="markdown-preview mb-0">
-                                    <ReactMarkdown>{msg.text}</ReactMarkdown>
-                                </div>
+                                // Only use Typewriter for the very last message if it's from AI to avoid re-typing old messages
+                                idx === chatHistory.length - 1 ? (
+                                    <Typewriter text={msg.text} />
+                                ) : (
+                                    <div className="markdown-preview mb-0">
+                                        <ReactMarkdown>{msg.text}</ReactMarkdown>
+                                    </div>
+                                )
                             )}
                         </div>
                     </motion.div>

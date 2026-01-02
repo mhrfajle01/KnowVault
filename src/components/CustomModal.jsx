@@ -305,16 +305,25 @@ const CustomModal = () => {
             <div className={`p-4 border-top bg-body-tertiary d-flex justify-content-end gap-3 flex-shrink-0`}>
                 {!isReadMode ? (
                     <>
+                        {type !== 'info' && (
+                            <button 
+                                className="btn btn-light px-4 rounded-pill fw-medium border"
+                                onClick={closeModal}
+                            >
+                                Cancel
+                            </button>
+                        )}
                         <button 
-                            className="btn btn-light px-4 rounded-pill fw-medium border"
-                            onClick={closeModal}
-                        >
-                            Cancel
-                        </button>
-                        <button 
+                            type="button"
                             className="btn px-4 rounded-pill text-white fw-bold shadow-sm d-flex align-items-center gap-2"
                             style={{ background: type === 'danger' ? '#fa5252' : '#228be6' }}
-                            onClick={handleConfirm}
+                            onClick={() => {
+                                if (type === 'info') {
+                                    closeModal();
+                                } else {
+                                    handleConfirm();
+                                }
+                            }}
                             disabled={isLoading}
                         >
                             {isLoading && (
@@ -325,7 +334,7 @@ const CustomModal = () => {
                                     style={{ width: '14px', height: '14px' }}
                                 />
                             )}
-                            {type === 'danger' ? 'Yes, Delete' : 'Confirm'}
+                            {type === 'danger' ? 'Yes, Delete' : (type === 'info' ? 'OK' : 'Confirm')}
                         </button>
                     </>
                 ) : (

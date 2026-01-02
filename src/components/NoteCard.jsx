@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
@@ -6,14 +6,15 @@ import 'highlight.js/styles/github.css';
 import { useVault } from '../context/VaultContext';
 import { useUI } from '../context/UIContext';
 import { useAI } from '../context/AIContext';
-import { hoverScale, pulse, glow } from '../utils/animations';
+import { hoverScale, pulse, glow, trashBin, trashLid, pop } from '../utils/animations';
 
 const NoteCard = ({ item, onEdit }) => {
   const { deleteItem, setEditingItem, togglePin, toggleArchive, state: vaultState, moveToTrash, restoreFromTrash, setFilters } = useVault();
-  const { showModal } = useUI();
+  const { showModal, showToast } = useUI();
   const { playAiSound } = useAI();
   const { filters } = vaultState;
   const [isGlowing, setIsGlowing] = React.useState(false);
+  const [isHoveringTrash, setIsHoveringTrash] = useState(false);
 
   // Trigger glow on update
   React.useEffect(() => {
@@ -150,11 +151,7 @@ const NoteCard = ({ item, onEdit }) => {
     const text = `${item.title}\n\n${item.content}`;
     navigator.clipboard.writeText(text);
     playAiSound('success');
-    showModal({
-      title: 'Copied!',
-      message: 'The note content has been copied to your clipboard.',
-      type: 'confirm'
-    });
+    showToast('Content copied to clipboard', 'success');
   };
 
   const backlinks = vaultState.items.filter(i => {
@@ -236,7 +233,8 @@ const NoteCard = ({ item, onEdit }) => {
              {!item.trashed && (
                  <>
                     <motion.button 
-                        whileTap={{ scale: 0.9 }}
+                        variants={pop}
+                        whileTap="tap"
                         className="btn btn-sm btn-outline-secondary"
                         onClick={handleCopy}
                         title="Copy to Clipboard"
@@ -244,7 +242,8 @@ const NoteCard = ({ item, onEdit }) => {
                         📋
                     </motion.button>
                     <motion.button 
-                        whileTap={{ scale: 0.9 }}
+                        variants={pop}
+                        whileTap="tap"
                         className="btn btn-sm btn-outline-info"
                         onClick={handleExportMarkdown}
                         title="Download as Markdown"
@@ -296,13 +295,30 @@ const NoteCard = ({ item, onEdit }) => {
                  </motion.button>
              )}
              <motion.button 
-                whileTap={{ scale: 0.9 }}
+                initial="rest"
+                whileHover="hover"
+                whileTap="tap"
+                onHoverStart={() => setIsHoveringTrash(true)}
+                onHoverEnd={() => setIsHoveringTrash(false)}
                 className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" 
                 onClick={handleDelete} 
                 title={item.trashed ? "Delete Permanently" : "Move to Trash"}
              >
-                <span>{item.trashed ? '🔥' : '🗑️'}</span>
-                <span className="d-none d-sm-inline">{item.trashed ? 'Delete' : 'Trash'}</span>
+                <div style={{ position: 'relative', width: '16px', height: '16px' }}>
+                     <svg viewBox="0 0 448 512" style={{ width: '100%', height: '100%', fill: 'currentColor' }}>
+                        {/* Lid */}
+                         <motion.path 
+                            variants={trashLid}
+                            d="M 64 64 L 384 64 L 384 96 L 64 96 Z M 192 32 L 256 32 L 256 64 L 192 64 Z"
+                         />
+                         {/* Bin */}
+                         <motion.path 
+                            variants={trashBin}
+                            d="M 96 96 L 352 96 L 352 448 L 96 448 Z M 160 160 L 192 160 L 192 384 L 160 384 Z M 256 160 L 288 160 L 288 384 L 256 384 Z"
+                         />
+                    </svg>
+                </div>
+                <span className="d-none d-sm-inline ms-1">{item.trashed ? 'Delete' : 'Trash'}</span>
              </motion.button>
           </div>
         </div>

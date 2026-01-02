@@ -15,6 +15,8 @@ export const UIProvider = ({ children }) => {
     isLoading: false
   });
 
+  const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
+
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const showModal = ({ title, message, content, item, type = 'info', onConfirm, onCancel, isLoading = false }) => {
@@ -31,6 +33,13 @@ export const UIProvider = ({ children }) => {
     });
   };
 
+  const showToast = (message, type = 'info') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
+
   const setModalLoading = (isLoading) => {
     setModalConfig(prev => ({ ...prev, isLoading }));
   };
@@ -40,7 +49,7 @@ export const UIProvider = ({ children }) => {
   };
 
   return (
-    <UIContext.Provider value={{ modalConfig, showModal, closeModal, setModalLoading, isSearchFocused, setIsSearchFocused }}>
+    <UIContext.Provider value={{ modalConfig, showModal, closeModal, setModalLoading, isSearchFocused, setIsSearchFocused, toast, showToast }}>
       {children}
     </UIContext.Provider>
   );
